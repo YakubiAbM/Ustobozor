@@ -1,1 +1,1 @@
-# OTP, Telegram Gateway, SMS helpers
+# OTP, SMS helpers

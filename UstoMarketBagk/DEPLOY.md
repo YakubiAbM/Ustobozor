@@ -85,7 +85,6 @@ nano .env
 
 - `SUPERADMIN_PHONE_NORM` — ваш телефон (нормализованный, только цифры).
 - `SUPERADMIN_PASSWORD` — пароль входа в админку.
-- `TELEGRAM_BOT_TOKEN` и `TELEGRAM_CHAT_ID` — если нужны уведомления в Telegram.
 - `DATABASE_URL` в `.env` можно не менять — в `docker-compose.yml` он переопределён на `postgresql://postgres:7900@db:5432/market`.
 
 Сохраните: `Ctrl+O`, Enter, `Ctrl+X`.
@@ -94,17 +93,6 @@ nano .env
 
 - **Push (FCM):** Положите в каталог проекта на сервере файл `firebase-service-account.json` (скачать в Firebase Console → Project settings → Service accounts → Generate new private key). В `.env` добавьте строку: `FCM_SERVICE_ACCOUNT_PATH=firebase-service-account.json`. Контейнер монтирует этот файл при запуске.
 - **Штрихкоды:** Для генерации штрихкодов мастеров в образе должен быть установлен Pillow (уже есть в `requirements.txt`). После обновления кода пересоберите образ: `docker compose build --no-cache app && docker compose up -d`.
-
-### 2.4.2 Telegram: кнопки смены статуса заказа
-
-В Telegram приходят красиво оформленные уведомления о новых заказах с кнопками **В работе** / **Выполнен** / **Отменён**. Чтобы кнопки работали, нужно один раз зарегистрировать webhook (нужен **HTTPS**):
-
-1. Поднимите приложение и настройте HTTPS (прокси Nginx с SSL или туннель, например ngrok).
-2. В браузере откройте: `https://ВАШ_ДОМЕН/telegram/set_webhook?url=https://ВАШ_ДОМЕН/telegram/webhook`  
-   (подставьте реальный домен и убедитесь, что URL в кодировке один и тот же).
-3. В ответе должно быть `"ok": true`. После этого при нажатии кнопки под заказом статус будет меняться в БД и в сообщении.
-
-Если нет HTTPS, кнопки в Telegram работать не будут (только просмотр сообщений).
 
 ### 2.5 Запустить приложение
 

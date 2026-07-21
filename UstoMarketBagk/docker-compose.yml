@@ -21,20 +21,6 @@ services:
       - ./static:/app/static
       - ./web:/app/web
 
-  bot:
-    profiles: ["notify"]
-    build: .
-    container_name: ustobozor-bot
-    env_file:
-      - .env
-    environment:
-      - DATABASE_URL=postgresql://postgres:7900@db:5432/market
-    restart: always
-    depends_on:
-      db:
-        condition: service_healthy
-    command: ["python", "telegram_bot_polling.py"]
-
   redis:
     image: redis:7-alpine
     container_name: ustobozor-redis

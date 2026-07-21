@@ -123,16 +123,6 @@ flutter build apk
 
 ---
 
-## Шаг 8. Telegram (если используете бота)
-
-Webhook:
-
-```
-https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://ustobozor.tj/telegram/webhook
-```
-
----
-
 ## Если что-то не работает
 
 | Проблема | Решение |

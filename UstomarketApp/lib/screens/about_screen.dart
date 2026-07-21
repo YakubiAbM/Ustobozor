@@ -22,7 +22,6 @@ class _AboutScreenState extends State<AboutScreen> {
   static const _socialFields = [
     ('instagram_url', Icons.camera_alt_outlined, 'Instagram', null),
     ('tiktok_url', Icons.music_note_outlined, 'TikTok', null),
-    ('telegram_url', Icons.send_outlined, 'Telegram', null),
     ('whatsapp_url', Icons.chat_outlined, 'WhatsApp', Color(0xFF25D366)),
   ];
 

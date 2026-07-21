@@ -12,7 +12,7 @@ import 'master_auth_helpers.dart';
 class MasterVerifyCodeScreen extends StatefulWidget {
   final String phone;
   final String? nameFromForm;
-  /// tg | sms — подсказка, куда пришёл код
+  /// sms — подсказка, куда пришёл код
   final String? codeChannel;
   /// Dev: код из SMS-stub (ответ request-code с dev_code)
   final String? devCodeHint;
@@ -148,14 +148,7 @@ class _MasterVerifyCodeScreenState extends State<MasterVerifyCodeScreen> {
                 widget.phone,
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.accent),
               ),
-              if (widget.codeChannel == 'tg') ...[
-                const SizedBox(height: 6),
-                Text(
-                  settings.t('master_code_wait_tg'),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface.withOpacity(0.7)),
-                ),
-              ] else if (widget.codeChannel == 'sms') ...[
+              if (widget.codeChannel == 'sms' || widget.codeChannel == null) ...[
                 const SizedBox(height: 6),
                 Text(
                   settings.t('master_code_sent_sms'),
