@@ -1,0 +1,16 @@
+# Prod без pull образов: Postgres + Redis ставятся через apt на хосте
+services:
+  app:
+    build: .
+    container_name: ustobozor-app
+    network_mode: host
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://postgres:7900@127.0.0.1:5432/market
+      - REDIS_URL=redis://127.0.0.1:6379/0
+      - OTP_BACKEND=redis
+    volumes:
+      - ./static:/app/static
+      - ./web:/app/web
+    restart: always

@@ -1,0 +1,19 @@
+# Игнорировать при сборке образа (меньше размер, быстрее build)
+.git
+.gitignore
+.env
+.venv
+venv
+env
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.coverage
+htmlcov
+*.md
+pwaApp
+.cursor
+.codex
+*.log
+.DS_Store

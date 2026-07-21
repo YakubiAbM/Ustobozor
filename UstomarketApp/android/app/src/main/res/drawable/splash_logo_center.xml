@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Лого по центру в исходном размере (без растягивания). Картинка в drawable-nodpi. -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/splash_logo"
+    android:gravity="center"
+    android:antialias="true" />

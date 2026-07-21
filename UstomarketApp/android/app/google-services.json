@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "131274059254",
+    "project_id": "khushrang",
+    "storage_bucket": "khushrang.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:131274059254:android:2bf386321eded14334abd7",
+        "android_client_info": {
+          "package_name": "com.example.apppp1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAdf7eXzUO4VfCnUBqp4gfrr0DM7oT0zM8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

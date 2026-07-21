@@ -1,0 +1,66 @@
+services:
+  app:
+    build: .
+    container_name: ustobozor-app
+    env_file:
+      - .env
+    environment:
+      # В контейнере Postgres доступен по имени сервиса "db"
+      - DATABASE_URL=postgresql://postgres:7900@db:5432/market
+      - REDIS_URL=redis://redis:6379/0
+      - OTP_BACKEND=redis
+    ports:
+      - "8000:8000"
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./static:/app/static
+      - ./web:/app/web
+
+  bot:
+    profiles: ["notify"]
+    build: .
+    container_name: ustobozor-bot
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://postgres:7900@db:5432/market
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["python", "telegram_bot_polling.py"]
+
+  redis:
+    image: redis:7-alpine
+    container_name: ustobozor-redis
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 5s
+      retries: 5
+
+  db:
+    image: postgres:16
+    container_name: ustobozor-db
+    restart: always
+    environment:
+      - POSTGRES_DB=market
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=7900
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+

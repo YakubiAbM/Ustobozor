@@ -1,0 +1,54 @@
+# =============================================================================
+# СЕКРЕТЫ — НИКОГДА не коммитить в GitHub. В репо только этот .env.example
+# Если .env уже попал в git: git rm --cached .env && смените все токены/пароли
+# =============================================================================
+.env
+.env.local
+.env.production
+.env.staging
+.env.*.local
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+
+# Тесты и отчёты
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# IDE и редакторы
+.idea/
+.vscode/
+.cursor/
+.codex/
+*.swp
+*.swo
+
+# Системные
+.DS_Store
+Thumbs.db
+*.log
+
+# Проект-специфично
+firebase-service-account.json
+*-service-account.json
+pwaApp/venv/
+web/*.apk
+*.db
+*.sqlite3
+
+# CI/CD deploy keys (never commit private key)
+deploy/github_actions_deploy
+deploy/*_deploy
+!deploy/*_deploy.pub
