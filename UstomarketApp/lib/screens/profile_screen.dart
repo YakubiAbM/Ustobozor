@@ -42,7 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final master = Provider.of<MasterAuthProvider>(context, listen: false);
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     if (master.isLoggedIn) {
-      await master.refreshPointsFromServer();
+      // await master.refreshPointsFromServer(); // баллы временно отключены
       if (mounted) setState(() {});
       if (mounted)
         Provider.of<NotificationsProvider>(
@@ -703,68 +703,70 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onSurface,
                   isDark,
                 ),
-                const SizedBox(height: 14),
-                Consumer<MasterAuthProvider>(
-                  builder: (context, master, _) => Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                      horizontal: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.masterStatsGradientStart,
-                          AppColors.accent,
-                          AppColors.masterStatsGradientEnd,
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+                if (kMasterPointsEnabled) ...[
+                  const SizedBox(height: 14),
+                  Consumer<MasterAuthProvider>(
+                    builder: (context, master, _) => Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 14,
                       ),
-                      borderRadius:
-                          BorderRadius.circular(AppLayout.cardBorderRadius),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.accent.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.masterStatsGradientStart,
+                            AppColors.accent,
+                            AppColors.masterStatsGradientEnd,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.diamond, color: AppColors.accentContrastText, size: 24),
-                        const SizedBox(width: 10),
-                        Text(
-                          settings.t('master_balance'),
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppColors.accentContrastText.withValues(alpha: 0.75),
-                            fontWeight: FontWeight.w600,
+                        borderRadius:
+                            BorderRadius.circular(AppLayout.cardBorderRadius),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.accent.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
                           ),
-                        ),
-                        const Spacer(),
-                        if (master.points > 0)
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.diamond, color: AppColors.accentContrastText, size: 24),
+                          const SizedBox(width: 10),
                           Text(
-                            '${master.points} ${settings.t('master_points_unit')}',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.accentContrastText,
-                            ),
-                          )
-                        else
-                          Text(
-                            settings.t('master_buy_to_get_points'),
+                            settings.t('master_balance'),
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 14,
                               color: AppColors.accentContrastText.withValues(alpha: 0.75),
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                      ],
+                          const Spacer(),
+                          if (master.points > 0)
+                            Text(
+                              '${master.points} ${settings.t('master_points_unit')}',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.accentContrastText,
+                              ),
+                            )
+                          else
+                            Text(
+                              settings.t('master_buy_to_get_points'),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.accentContrastText.withValues(alpha: 0.75),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                ],
                 if (master.hasDebt) ...[
                   const SizedBox(height: 14),
                   Material(

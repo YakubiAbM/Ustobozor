@@ -47,14 +47,14 @@ class _MastersScreenState extends State<MastersScreen> {
       if (!mounted) return;
       final nav = Provider.of<NavigationProvider>(context, listen: false);
       nav.addListener(_onNavChanged);
-      if (nav.currentIndex == 1) _ensureFetch();
+      if (nav.currentIndex == NavigationProvider.tabMasters) _ensureFetch();
     });
   }
 
   void _onNavChanged() {
     if (!mounted) return;
     final nav = Provider.of<NavigationProvider>(context, listen: false);
-    if (nav.currentIndex == 1) _ensureFetch();
+    if (nav.currentIndex == NavigationProvider.tabMasters) _ensureFetch();
   }
 
   @override
@@ -152,7 +152,7 @@ class _MastersScreenState extends State<MastersScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(15, 12, 15, 8),
                 child: Text(
-                  'Ustobozor',
+                  'Ustomarket',
                   style: const TextStyle(
                     color: AppColors.accent,
                     fontSize: 18,
@@ -259,7 +259,7 @@ class _MastersScreenState extends State<MastersScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(15, 15, 15, 6),
               child: Text(
-                'Ustobozor',
+                'Ustomarket',
                 style: const TextStyle(
                   color: AppColors.accent,
                   fontSize: 18,

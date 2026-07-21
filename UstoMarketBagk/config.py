@@ -95,6 +95,9 @@ SUPERADMIN_PASSWORD = os.getenv("SUPERADMIN_PASSWORD", "").strip()
 # Для теста: если 1/true — в админку можно зайти без логина (считается супер-админ).
 SKIP_ADMIN_AUTH = _env_bool("SKIP_ADMIN_AUTH", False)
 
+# Программа баллов мастеров (временно отключена; MASTER_POINTS_ENABLED=1 чтобы включить).
+MASTER_POINTS_ENABLED = _env_bool("MASTER_POINTS_ENABLED", False)
+
 # -----------------------------------------------------------------------------
 # CORS (разрешённые origins для браузера)
 # -----------------------------------------------------------------------------

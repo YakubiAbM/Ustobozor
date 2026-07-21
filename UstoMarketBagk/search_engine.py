@@ -40,7 +40,7 @@ PRODUCTS_CACHE = []
 
 def refresh_products_cache(db: Session):
     global PRODUCTS_CACHE
-    print("🔄 Обновляем кеш товаров...")
+    print("Обновляем кеш товаров...")
     products = db.query(ProductDB).all()
     PRODUCTS_CACHE = []
     for p in products:
@@ -73,7 +73,7 @@ def refresh_products_cache(db: Session):
             "articul": p.articul,
             "tokens": set(full_text.split())
         })
-    print(f"✅ Кеш обновлен: {len(PRODUCTS_CACHE)} товаров.")
+    print(f"Кеш обновлен: {len(PRODUCTS_CACHE)} товаров.")
 
 class TextParser:
     @staticmethod

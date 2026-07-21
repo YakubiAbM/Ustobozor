@@ -10,6 +10,9 @@ String get effectiveBaseUrl => baseUrl;
 /// Prod: false. Dev: true (нужен SKIP_MASTER_OTP=1 на бэке).
 const bool kAllowDevMasterLogin = false;
 
+/// Программа баллов мастеров (временно отключена).
+const bool kMasterPointsEnabled = false;
+
 /// Папка загрузок на сервере (если путь из API без static/).
 const String uploadsPath = 'static/uploads';
 const String kAppPlaceholderAssetPath = 'assets/icon (2).png';

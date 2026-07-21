@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../constants.dart';
 import '../api_client.dart';
 import '../services/push_notification_service.dart';
 import '../services/secure_token_storage.dart';
@@ -89,7 +90,7 @@ class MasterAuthProvider with ChangeNotifier {
           await apiGet('/auth/me', queryParameters: {'phone': _masterPhone});
       final body = json.decode(r.body);
       if (body is Map) {
-        if (body['points'] != null) {
+        if (kMasterPointsEnabled && body['points'] != null) {
           final p = body['points'];
           final points = p is int ? p : (p is num ? p.toInt() : 0);
           await setPoints(points);

@@ -31,7 +31,7 @@ class _KassaTabState extends State<KassaTab> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: kMasterPointsEnabled ? 3 : 2, vsync: this);
     _load();
   }
 
@@ -152,10 +152,10 @@ class _KassaTabState extends State<KassaTab> with SingleTickerProviderStateMixin
               labelColor: AppColors.accent,
               unselectedLabelColor: AppColors.textSecondary,
               indicatorColor: AppColors.accent,
-              tabs: const [
-                Tab(text: 'Баллы'),
-                Tab(text: 'Долги'),
-                Tab(text: 'Акции'),
+              tabs: [
+                if (kMasterPointsEnabled) const Tab(text: 'Баллы'),
+                const Tab(text: 'Долги'),
+                const Tab(text: 'Акции'),
               ],
             ),
             Expanded(
@@ -166,14 +166,15 @@ class _KassaTabState extends State<KassaTab> with SingleTickerProviderStateMixin
                       : TabBarView(
                           controller: _tabController,
                           children: [
-                            _PointsTab(
-                              summary: _summary,
-                              idController: _idController,
-                              amountController: _amountController,
-                              submitting: _submitting,
-                              onRefresh: _load,
-                              onPoints: _points,
-                            ),
+                            if (kMasterPointsEnabled)
+                              _PointsTab(
+                                summary: _summary,
+                                idController: _idController,
+                                amountController: _amountController,
+                                submitting: _submitting,
+                                onRefresh: _load,
+                                onPoints: _points,
+                              ),
                             _DebtTab(
                               debtors: _debtors,
                               idController: _idController,

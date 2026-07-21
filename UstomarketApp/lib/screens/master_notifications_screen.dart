@@ -57,7 +57,12 @@ class _MasterNotificationsScreenState extends State<MasterNotificationsScreen> {
           ? (countBody['count'] is int ? countBody['count'] as int : (countBody['count'] as num).toInt())
           : 0;
       setState(() {
-        _list = rawList.map((e) => MasterNotification.fromJson(e as Map<String, dynamic>)).toList();
+        _list = rawList
+            .map((e) => MasterNotification.fromJson(e as Map<String, dynamic>))
+            .where((n) =>
+                kMasterPointsEnabled ||
+                (n.type != 'points_added' && n.type != 'points_spent'))
+            .toList();
         _unreadCount = count;
         _loading = false;
       });

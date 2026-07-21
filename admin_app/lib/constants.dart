@@ -6,6 +6,9 @@ const String baseUrl = 'https://ustobozor.tj';
 const String kAppIconAsset = 'assets/icon.png';
 const String kSplashAsset = 'assets/splash.png';
 
+/// Программа баллов мастеров (временно отключена).
+const bool kMasterPointsEnabled = false;
+
 class AppColors {
   static const Color bg = Color(0xFF06070C);
   static const Color card = Color(0xFF111827);

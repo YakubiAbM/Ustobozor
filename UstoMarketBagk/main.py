@@ -53,12 +53,13 @@ from telegram_notify import notify_new_order, answer_callback_query, edit_messag
 from order_actions import apply_order_status_change
 
 try:
-    from config import ALLOWED_ORIGINS, CORS_ALLOW_ALL, SUPERADMIN_PHONE_NORM, SUPERADMIN_PASSWORD
+    from config import ALLOWED_ORIGINS, CORS_ALLOW_ALL, SUPERADMIN_PHONE_NORM, SUPERADMIN_PASSWORD, MASTER_POINTS_ENABLED
 except ImportError:
     ALLOWED_ORIGINS = []
     CORS_ALLOW_ALL = True
     SUPERADMIN_PHONE_NORM = ""
     SUPERADMIN_PASSWORD = ""
+    MASTER_POINTS_ENABLED = False
 
 
 class CalculatorEstimateRequest(BaseModel):
@@ -488,8 +489,12 @@ def search_products_api(
 
 @app.get("/masters", response_model=List[MasterResponse])
 def get_masters_api(db: Session = Depends(get_db)):
-    """Список мастеров, отсортированный по баллам (points) по убыванию."""
-    masters = db.query(MasterDB).order_by(MasterDB.points.desc()).all()
+    """Список мастеров (по имени; при включённых баллах — по points)."""
+    q = db.query(MasterDB)
+    if MASTER_POINTS_ENABLED:
+        masters = q.order_by(MasterDB.points.desc()).all()
+    else:
+        masters = q.order_by(MasterDB.name.asc()).all()
     out = []
     for m in masters:
         pf = _parse_json_field(m.portfolio_json, [])
@@ -1109,7 +1114,7 @@ def startup_event():
     db = SessionLocal()
     try:
         refresh_products_cache(db)
-        print(f"✅ Загружено {len(PRODUCTS_CACHE)} товаров в кеш поиска.")
+        print(f"Загружено {len(PRODUCTS_CACHE)} товаров в кеш поиска.")
     finally:
         db.close()
 

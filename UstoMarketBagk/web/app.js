@@ -1,4 +1,6 @@
 const API = ""; // same origin: /products, /masters, /orders
+/** Программа баллов мастеров (временно отключена). */
+const MASTER_POINTS_ENABLED = false;
 function fullUrl(path) {
   if (!path || typeof path !== "string") return "";
   path = path.trim();
@@ -46,9 +48,11 @@ const state = {
   backScreen: "home",
 
   qHome: "",
+  qMaterials: "",
   qProducts: "",
   qMasters: "",
   qHomeDraft: "",
+  qMaterialsDraft: "",
   qProductsDraft: "",
   qMastersDraft: "",
 
@@ -77,7 +81,7 @@ const state = {
   checkoutOk: false,
   lastOrderId: "",
 
-  // главная: фильтр категории для популярных товаров
+  // вкладка «Стройматериалы»: фильтр категории для популярных товаров
   homeCategoryFilter: "Все",
   // каталог: фильтр бренда/категории
   catalogBrandFilter: "Все",
@@ -109,7 +113,7 @@ const state = {
   addressSheetOpen: false,
   favorites: [],
 
-  searchResults: { home: [], products: [] },
+  searchResults: { home: [], materials: [], products: [] },
   searchLoading: false,
   searchSeq: 0,
 
@@ -228,12 +232,14 @@ let searchDebounceTimer = null;
 
 function searchDraftValue() {
   if (state.screen === "home") return state.qHomeDraft;
+  if (state.screen === "materials") return state.qMaterialsDraft;
   if (state.screen === "products") return state.qProductsDraft;
   return state.qMastersDraft;
 }
 
 function setSearchDraftValue(v) {
   if (state.screen === "home") state.qHomeDraft = v;
+  else if (state.screen === "materials") state.qMaterialsDraft = v;
   else if (state.screen === "products") state.qProductsDraft = v;
   else state.qMastersDraft = v;
 }
@@ -242,7 +248,10 @@ function clearSearchForScreen(screen) {
   if (screen === "home") {
     state.qHome = "";
     state.qHomeDraft = "";
-    state.searchResults.home = [];
+  } else if (screen === "materials") {
+    state.qMaterials = "";
+    state.qMaterialsDraft = "";
+    state.searchResults.materials = [];
   } else if (screen === "products") {
     state.qProducts = "";
     state.qProductsDraft = "";
@@ -261,9 +270,12 @@ function applySearchQuery() {
 
   if (state.screen === "home") {
     state.qHome = v;
-    if (v.length >= 2) fetchProductSearch(v, "home");
+    render();
+  } else if (state.screen === "materials") {
+    state.qMaterials = v;
+    if (v.length >= 2) fetchProductSearch(v, "materials");
     else {
-      state.searchResults.home = [];
+      state.searchResults.materials = [];
       render();
     }
   } else if (state.screen === "products") {
@@ -481,13 +493,13 @@ async function scheduleProductSearch(q, screen) {
 }
 
 async function fetchProductSearch(q, screen) {
-  const key = screen === "products" ? "products" : "home";
+  const key = screen === "products" ? "products" : "materials";
   const seq = ++state.searchSeq;
   state.searchLoading = true;
   render();
   try {
     let url = API + "/products/search?q=" + encodeURIComponent(q) + "&limit=48";
-    const cat = screen === "home" ? state.homeCategoryFilter : state.selectedCategory;
+    const cat = screen === "materials" ? state.homeCategoryFilter : state.selectedCategory;
     if (cat && cat !== "Все" && cat !== "All") {
       url += "&category=" + encodeURIComponent(cat);
     }
@@ -504,11 +516,11 @@ async function fetchProductSearch(q, screen) {
   }
 }
 
-function getHomeProductList() {
-  const q = (state.qHome || "").trim();
+function getMaterialsTabProductList() {
+  const q = (state.qMaterials || "").trim();
   const catFilter = state.homeCategoryFilter || "Все";
   if (q.length >= 2) {
-    let list = state.searchResults.home || [];
+    let list = state.searchResults.materials || [];
     if (catFilter !== "Все") {
       list = list.filter(function (p) { return (p.category || "").trim() === catFilter; });
     }
@@ -806,6 +818,21 @@ function getMasterCategoriesList(m) {
   return normalizeCategories(m.category);
 }
 
+/** ID из data-id приходит строкой; в API id — число. */
+function normalizeMasterId(id) {
+  if (id == null || id === "") return null;
+  const n = parseInt(String(id), 10);
+  return Number.isFinite(n) ? n : id;
+}
+
+function getMasterById(id) {
+  const want = normalizeMasterId(id);
+  if (want == null) return null;
+  return state.masters.find(function (x) {
+    return normalizeMasterId(x.id) === want || String(x.id) === String(want);
+  }) || null;
+}
+
 function getAllMasterCategories() {
   const all = [];
   for (const m of state.masters) {
@@ -888,10 +915,10 @@ function setScreen(screen) {
   state.screen = screen;
   if (screen === "checkout") state.backScreen = "cart";
   else if (screen === "chat_order") state.backScreen = prev === "chat_order" ? "home" : prev;
-  else if (screen === "master_auth" || screen === "client_auth") state.backScreen = "profile";
+  else if (screen === "master_auth" || screen === "client_auth") state.backScreen = prev === "publish" ? "publish" : "profile";
   else if (screen === "cart") state.backScreen = prev;
   else if (screen === "orders" || screen === "notifications" || screen === "about") state.backScreen = "profile";
-  else if (screen === "calculator") state.backScreen = prev === "calculator" ? "home" : prev;
+  else if (screen === "calculator") state.backScreen = prev === "calculator" ? "materials" : prev;
   if (screen === "profile" || screen === "orders" || screen === "notifications") fetchProfileData();
   if (screen === "calculator") fetchProductsOnce();
   if (screen === "profile" && isDesktopLayout() && !state.profileSection) {
@@ -917,13 +944,13 @@ function setScreen(screen) {
 
   render();
 
-  if (screen === "home" || screen === "products" || screen === "details" || screen === "calculator") fetchProductsOnce();
+  if (screen === "materials" || screen === "products" || screen === "details" || screen === "calculator") fetchProductsOnce();
   if (screen === "home" || screen === "masters" || screen === "master_details") fetchMastersOnce();
 }
 
 function openDetails(productId, fromScreen) {
   state.selectedProductId = productId;
-  state.backScreen = fromScreen || "home";
+  state.backScreen = fromScreen || "materials";
   state.detailsPhotoIndex = 0;
   state.detailsSizeIndex = 0;
   state.detailsColorIndex = 0;
@@ -932,10 +959,11 @@ function openDetails(productId, fromScreen) {
 }
 
 function openMasterDetails(masterId) {
-  state.selectedMasterId = masterId;
+  state.selectedMasterId = normalizeMasterId(masterId);
   state.masterPhotoIndex = 0;
   state.masterBackStep = state.mastersStep || "list";
   state.screen = "master_details";
+  fetchMastersOnce();
   render();
 }
 
@@ -1151,6 +1179,7 @@ async function fetchMastersOnce() {
       const phone = (m.phone || "").trim();
       const wa = phone.replace(/\D/g, "");
       return Object.assign({}, m, {
+        id: normalizeMasterId(m.id),
         avatar: photo,
         photo: photo,
         work_photos: workPhotos.length ? workPhotos : (photo ? [photo] : []),
@@ -1253,20 +1282,42 @@ function tab(id, iconName, label) {
   `;
 }
 
+function tabPlus(id) {
+  const active = state.screen === id ? "active" : "";
+  return `
+    <button class="tab tab-plus ${active}" data-act="nav" data-screen="${id}" aria-label="Публикация">
+      <div class="tab-plus-inner">${typeof icon === "function" ? icon("plus", "tab-ico", 22) : "+"}</div>
+    </button>
+  `;
+}
+
+function renderBottomNav() {
+  const count = cartCount();
+  return `
+    ${tab("home", "home", "Главная")}
+    ${tab("masters", "users", "Мастера")}
+    ${tabPlus("publish")}
+    ${tab("materials", "box", "Материалы")}
+    ${tab("cart", "cart", count ? `Корзина ${count}` : "Корзина")}
+    ${tab("profile", "user", "Профиль")}
+  `;
+}
+
 function renderDesktopHeader() {
   const count = cartCount();
-  const showSearch = ["home", "masters", "products"].includes(state.screen);
+  const showSearch = ["home", "masters", "materials", "products"].includes(state.screen);
   const themeDark = state.profileTheme === "dark";
   return `
     <header class="desk-header desktop-header">
       <div class="desk-header-inner">
         <button type="button" class="desk-logo" data-act="nav" data-screen="home">
           <span class="desk-logo-mark">${icon("package", "", 22)}</span>
-          <span class="desk-logo-text">Ustobozor</span>
+          <span class="desk-logo-text">Ustomarket</span>
         </button>
         ${showSearch ? `<div class="desk-search-wrap">${renderSearchBar("desk")}</div>` : `<div class="desk-search-wrap desk-search-wrap--placeholder"></div>`}
         <nav class="desk-actions" aria-label="Основная навигация">
           <button type="button" class="desk-action ${state.screen === "masters" ? "active" : ""}" data-act="nav" data-screen="masters">${icon("users")}<span>Мастера</span></button>
+          <button type="button" class="desk-action ${state.screen === "materials" ? "active" : ""}" data-act="nav" data-screen="materials">${icon("box")}<span>Материалы</span></button>
           <button type="button" class="desk-action ${state.screen === "products" ? "active" : ""}" data-act="nav" data-screen="products">${icon("grid")}<span>Каталог</span></button>
           <button type="button" class="desk-action desk-action-cart ${state.screen === "cart" ? "active" : ""}" data-act="nav" data-screen="cart">
             ${icon("cart")}
@@ -1294,7 +1345,7 @@ function renderDesktopNav() {
           ${cats
             .map(function (c) {
               const active =
-                state.screen === "products" && state.selectedCategory === c ? " active" : "";
+                (state.screen === "products" || state.screen === "materials") && state.selectedCategory === c ? " active" : "";
               return `<button type="button" class="desk-nav-link${active}" data-act="desk-open-cat" data-cat="${escapeHtml(c)}">${escapeHtml(c)}</button>`;
             })
             .join("")}
@@ -1316,6 +1367,7 @@ function renderDesktopFooter() {
           <div class="desk-footer-title">Покупателям</div>
           <button type="button" class="desk-footer-link" data-act="nav" data-screen="chat_order">Чат-заказ</button>
           <button type="button" class="desk-footer-link" data-act="nav" data-screen="calculator">Калькулятор сметы</button>
+          <button type="button" class="desk-footer-link" data-act="nav" data-screen="materials">Стройматериалы</button>
           <button type="button" class="desk-footer-link" data-act="nav" data-screen="products">Каталог</button>
           <button type="button" class="desk-footer-link" data-act="nav" data-screen="cart">Корзина</button>
           <button type="button" class="desk-footer-link" data-act="nav" data-screen="orders">Заказы</button>
@@ -1359,17 +1411,21 @@ function renderCatalogSidebar() {
 }
 
 function renderSearchBar(variant) {
-  const show = ["home", "masters", "products"].includes(state.screen);
+  const show = ["home", "masters", "materials", "products"].includes(state.screen);
   if (!show) return "";
 
   const v =
     state.screen === "home"
       ? state.qHomeDraft
+      : state.screen === "materials"
+      ? state.qMaterialsDraft
       : state.screen === "products"
       ? state.qProductsDraft
       : state.qMastersDraft;
 
   let placeholder = "Поиск...";
+  if (state.screen === "home") placeholder = "Поиск мастера (имя, профессия)...";
+  if (state.screen === "materials") placeholder = "Поиск товаров…";
   if (state.screen === "products") {
     if (state.materialsStep === "categories") placeholder = "Поиск категорий или товаров…";
     if (state.materialsStep === "subcategories") placeholder = "Поиск подкатегорий…";
@@ -1420,6 +1476,15 @@ function renderHeader() {
   }
   if (s === "calculator") {
     return `<div class="header-with-back"><button class="back-btn" data-act="back" aria-label="Назад">${icon("chevronLeft", "", 18)}</button><span class="header-title">Калькулятор сметы</span></div>`;
+  }
+  if (s === "home") {
+    return `<div class="home-header-desk desk-only"><div class="brand-row"><div class="brand">Ustomarket</div></div>${renderSearchBar()}</div>`;
+  }
+  if (s === "materials") {
+    return `<div class="brand-row"><div class="brand">Стройматериалы</div></div>${renderSearchBar()}`;
+  }
+  if (s === "publish") {
+    return `<div class="brand-row"><div class="brand">Публикация</div></div>`;
   }
   return `<div class="brand-row"><div class="brand">Ustobozor</div></div>${renderSearchBar()}`;
 }
@@ -1902,79 +1967,104 @@ function renderLightboxHTML() {
   `;
 }
 
+function getMasterHeroImage(m) {
+  const avatar = getMasterAvatar(m);
+  if (avatar) return productImageUrl(avatar);
+  const works = getMasterWorks(m);
+  if (works.length) return productImageUrl(works[0]);
+  return "";
+}
+
+function homeMasterCard(m) {
+  const photo = getMasterHeroImage(m);
+  const cats = getMasterCategoriesList(m);
+  const price = m.price_from != null ? `от ${formatPriceSmn(m.price_from)}` : "";
+
+  return `
+    <div class="home-master-card" data-act="open-master" data-id="${m.id}">
+      <div class="home-master-card-img">
+        ${photo
+          ? `<img src="${photo}" alt="${escapeHtml(m.name)}" loading="lazy">`
+          : `<div class="home-master-card-placeholder">${icon("hammer", "", 40)}</div>`}
+      </div>
+      <div class="home-master-card-body">
+        <div class="home-master-card-name">${escapeHtml(m.name || "Мастер")}</div>
+        ${cats.length
+          ? `<div class="home-master-card-tags">${cats.slice(0, 3).map(function (c) {
+              return `<span class="home-master-card-tag">${escapeHtml(c)}</span>`;
+            }).join("")}</div>`
+          : ""}
+        ${price ? `<div class="home-master-card-price">${price}</div>` : ""}
+      </div>
+    </div>
+  `;
+}
+
+function renderHomeMaterialsBanner() {
+  return `
+    <button type="button" class="home-materials-banner" data-act="nav" data-screen="materials">
+      <div class="home-materials-banner-icon">${icon("box", "", 24)}</div>
+      <div class="home-materials-banner-text">
+        <div class="home-materials-banner-title">Стройматериалы</div>
+        <div class="home-materials-banner-desc">Каталог товаров с доставкой</div>
+      </div>
+      <div class="home-materials-banner-cta">${icon("chevronRight", "", 18)}</div>
+    </button>
+  `;
+}
+
+function renderMaterialsCatalogBanner() {
+  return `
+    <button type="button" class="home-materials-banner home-materials-banner--catalog" data-act="nav" data-screen="products">
+      <div class="home-materials-banner-icon">${icon("grid", "", 24)}</div>
+      <div class="home-materials-banner-text">
+        <div class="home-materials-banner-title">Полный каталог</div>
+        <div class="home-materials-banner-desc">Категории, подкатегории и все товары</div>
+      </div>
+      <div class="home-materials-banner-cta">${icon("chevronRight", "", 18)}</div>
+    </button>
+  `;
+}
+
 /* ===== SCREENS ===== */
 function renderHome() {
-  const q = (state.qHome || "").trim();
-  const list = getHomeProductList();
+  const q = (state.qHome || "").trim().toLowerCase();
+  let list = state.masters || [];
+  if (q) list = list.filter(function (m) { return masterMatches(m, q); });
+
+  return `
+    <div class="home-screen">
+      <div class="home-brand mobile-only">Ustomarket</div>
+      <div class="home-search-mobile mobile-only">${renderSearchBar()}</div>
+
+      ${renderHomeMaterialsBanner()}
+
+      ${
+        state.loadingMasters && !state.masters.length
+          ? `<div class="empty-state">Загрузка мастеров…</div>`
+          : list.length
+            ? `<div class="home-master-list">${list.map(homeMasterCard).join("")}</div>`
+            : `<div class="empty-state">${q ? "Мастера не найдены." : "Пока нет мастеров."}</div>`
+      }
+    </div>
+  `;
+}
+
+function renderMaterialsTab() {
+  const q = (state.qMaterials || "").trim();
+  const list = getMaterialsTabProductList();
   const categories = ["Все"].concat(getCategories().slice(0, 6));
   const catFilter = state.homeCategoryFilter || "Все";
   const searching = q.length >= 2;
 
   return `
-    <div class="desk-hero">
-      <div class="desk-hero-content">
-        <p class="desk-hero-kicker">Интернет-магазин</p>
-        <h1 class="desk-hero-title">Строительные материалы с доставкой</h1>
-        <p class="desk-hero-desc">Каталог, корзина и мастера — всё в одном месте. Строгий минимализм без лишнего.</p>
-        <div class="desk-hero-actions">
-          <button type="button" class="btn btn-outline" data-act="nav" data-screen="masters">${icon("users", "", 18)} Мастера</button>
-        </div>
-        <div class="desk-hero-perks">
-          <span class="desk-hero-perk">${icon("truck", "", 16)} Доставка по городу</span>
-          <span class="desk-hero-perk">${icon("box", "", 16)} 500+ товаров</span>
-          <span class="desk-hero-perk">${icon("hammer", "", 16)} Проверенные мастера</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="banner-row">
-      <div class="banner-card banner-card--primary">
-        <div class="banner-card-icon">${icon("message", "", 22)}</div>
-        <div class="banner-card-text">
-          <div class="banner-card-title">Чат-заказ</div>
-          <div class="banner-card-desc">Напишите список материалов — мы соберём накладную и посчитаем стоимость.</div>
-          <div class="banner-card-actions">
-            <button class="btn btn-accent" type="button" data-act="nav" data-screen="chat_order">Открыть чат</button>
-          </div>
-        </div>
-      </div>
-      <div class="banner-card">
-        <div class="banner-card-icon">${icon("hammer", "", 22)}</div>
-        <div class="banner-card-text">
-          <div class="banner-card-title">Калькулятор сметы</div>
-          <div class="banner-card-desc">Посчитайте расход краски и шпатлёвки по размеру комнаты — только кликами.</div>
-          <div class="banner-card-actions">
-            <button class="btn btn-accent" type="button" data-act="nav" data-screen="calculator">Рассчитать</button>
-            <button class="btn btn-outline" type="button" data-act="nav" data-screen="masters">Мастера</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="action-cards action-cards--mobile">
-      <div class="action-card">
-        <div class="action-card-icon">${icon("message", "", 22)}</div>
-        <div class="action-card-text">
-          <div class="action-card-title">Чат-заказ</div>
-          <div class="action-card-desc">Напишите список — мы соберём и посчитаем</div>
-        </div>
-        <button class="btn btn-accent btn-action-card" data-act="nav" data-screen="chat_order">Открыть</button>
-      </div>
-      <div class="action-card">
-        <div class="action-card-icon">${icon("hammer", "", 22)}</div>
-        <div class="action-card-text">
-          <div class="action-card-title">Калькулятор сметы</div>
-          <div class="action-card-desc">Расход материалов по размеру комнаты</div>
-        </div>
-        <button class="btn btn-accent btn-action-card" data-act="nav" data-screen="calculator">Рассчитать</button>
-      </div>
-    </div>
+    ${renderMaterialsCatalogBanner()}
 
     <div class="section-title">${searching ? "Результаты поиска" : "Популярные товары"}</div>
     <div class="chip-row">
       ${categories.map(function (c) {
         const active = (c === catFilter) ? " chip-active" : "";
-        return `<button class="chip${active}" data-act="set-home-cat" data-val="${escapeHtml(c)}">${escapeHtml(c)}</button>`;
+        return `<button class="chip${active}" data-act="set-materials-cat" data-val="${escapeHtml(c)}">${escapeHtml(c)}</button>`;
       }).join("")}
     </div>
 
@@ -1984,9 +2074,30 @@ function renderHome() {
         : state.loadingProducts && !state.products.length && !searching
         ? `<div style="opacity:.7;padding:10px 6px;">Загрузка…</div>`
         : list.length
-          ? `<div class="grid grid-popular products-grid">${list.map(function (p) { return productCard(p, "home"); }).join("")}</div>`
+          ? `<div class="grid grid-popular products-grid">${list.map(function (p) { return productCard(p, "materials"); }).join("")}</div>`
           : `<div style="opacity:.7;padding:10px 6px;">${searching ? "Ничего не найдено." : "Нет товаров."}</div>`
     }
+
+    <div class="materials-quick-actions">
+      <button type="button" class="btn btn-outline btn-block" data-act="nav" data-screen="chat_order">${icon("message", "", 18)} Чат-заказ</button>
+      <button type="button" class="btn btn-outline btn-block" data-act="nav" data-screen="calculator">${icon("hammer", "", 18)} Калькулятор сметы</button>
+    </div>
+  `;
+}
+
+function renderPublishWork() {
+  const loggedIn = isMasterUser();
+  return `
+    <div class="publish-screen">
+      <p class="publish-subtitle">Добавляйте фото выполненных работ — клиенты увидят их в вашем профиле.</p>
+      <div class="publish-center">
+        <div class="publish-icon">${icon("folder", "", 44)}</div>
+        <p class="publish-hint">${loggedIn
+          ? "Скоро здесь можно будет публиковать работы прямо из приложения."
+          : "Войдите как мастер, чтобы публиковать работы и управлять профилем."}</p>
+        ${loggedIn ? "" : `<button type="button" class="btn btn-accent btn-block" data-act="nav" data-screen="master_auth">Войти как мастер</button>`}
+      </div>
+    </div>
   `;
 }
 
@@ -2145,8 +2256,13 @@ function renderMasters() {
 
 /** Детальный экран мастера */
 function renderMasterDetails() {
-  const m = state.masters.find(x => x.id === state.selectedMasterId);
-  if (!m) return `<div style="opacity:.7;padding:10px 6px;">Мастер не найден</div>`;
+  const m = getMasterById(state.selectedMasterId);
+  if (!m) {
+    if (state.loadingMasters) {
+      return `<div style="opacity:.7;padding:10px 6px;">Загрузка…</div>`;
+    }
+    return `<div style="opacity:.7;padding:10px 6px;">Мастер не найден</div>`;
+  }
 
   const avatar = getMasterAvatar(m);
   const works = getMasterWorks(m);
@@ -2722,11 +2838,13 @@ function renderProfile() {
               <div class="profile-barcode-label">Код мастера (QR)</div>
               ${renderMasterBarcode(me)}
             </div>
+            ${MASTER_POINTS_ENABLED ? `
             <button class="profile-balance-btn" type="button">
               <span class="profile-balance-icon">◆</span>
               <span>Ваш баланс</span>
               <span class="profile-balance-value">${Number(me.points || 0)} баллов</span>
             </button>
+            ` : ""}
             ${(me.debt && Number(me.debt) > 0) ? `<div class="profile-debt">Долг: ${formatPriceSmn(me.debt)}</div>` : ""}
           </div>
           ` : isClientUser() ? `
@@ -2735,7 +2853,7 @@ function renderProfile() {
             <p class="profile-guest-hint">Заказы и адреса сохраняются для вашего номера.</p>
           </div>
           ` : `
-          <div class="profile-guest-hint">Войдите по номеру телефона — заказы, баллы и объявления в одном аккаунте.</div>
+          <div class="profile-guest-hint">Войдите по номеру телефона — заказы и объявления в одном аккаунте.</div>
           <button class="btn btn-accent profile-login-btn" data-act="nav" data-screen="client_auth" data-auth-mode="master" type="button">Войти</button>
           `}
 
@@ -2987,6 +3105,8 @@ function renderChatOrder() {
 
 function renderScreen() {
   if (state.screen === "home") return renderHome();
+  if (state.screen === "materials") return renderMaterialsTab();
+  if (state.screen === "publish") return renderPublishWork();
   if (state.screen === "products") return renderMaterials();
   if (state.screen === "masters") return renderMasters();
   if (state.screen === "details") return renderDetails();
@@ -3035,12 +3155,8 @@ function render() {
           ${renderScreen()}
         </div>
 
-        <div class="tabs bottom-navigation" aria-label="Основное меню">
-          ${tab("home", "home", "Главная")}
-          ${tab("masters", "users", "Мастера")}
-          ${tab("products", "grid", "Каталог")}
-          ${tab("cart", "cart", count ? `Корзина ${count}` : "Корзина")}
-          ${tab("profile", "user", "Профиль")}
+        <div class="tabs bottom-navigation tabs--six" aria-label="Основное меню">
+          ${renderBottomNav()}
         </div>
       </div>
 
@@ -3169,9 +3285,9 @@ document.addEventListener("click", (e) => {
     render();
     return;
   }
-  if (act === "set-home-cat") {
+  if (act === "set-home-cat" || act === "set-materials-cat") {
     state.homeCategoryFilter = t.getAttribute("data-val") || "Все";
-    if ((state.qHome || "").trim().length >= 2) fetchProductSearch(state.qHome.trim(), "home");
+    if ((state.qMaterials || "").trim().length >= 2) fetchProductSearch(state.qMaterials.trim(), "materials");
     else render();
     return;
   }
@@ -3537,7 +3653,7 @@ document.addEventListener("click", (e) => {
   }
 
   if (act === "open-master-photo") {
-    const m = state.masters.find(x => x.id === state.selectedMasterId);
+    const m = getMasterById(state.selectedMasterId);
     if (!m) return;
     const works = getMasterWorks(m);
     const avatar = getMasterAvatar(m);
@@ -3549,7 +3665,7 @@ document.addEventListener("click", (e) => {
   }
 
   if (act === "open-works-lightbox") {
-    const m = state.masters.find(x => x.id === state.selectedMasterId);
+    const m = getMasterById(state.selectedMasterId);
     if (!m) return;
     const works = getMasterWorks(m);
     if (!works.length) return;
@@ -3736,7 +3852,7 @@ document.addEventListener("touchend", (e) => {
     const hero = el && el.closest && el.closest('[data-swipe="master"]');
     if (!hero) return;
 
-    const m = state.masters.find(x => x.id === state.selectedMasterId);
+    const m = getMasterById(state.selectedMasterId);
     if (!m) return;
 
     const works = getMasterWorks(m);

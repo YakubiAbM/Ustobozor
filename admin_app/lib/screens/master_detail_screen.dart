@@ -142,7 +142,8 @@ class _MasterDetailScreenState extends State<MasterDetailScreen> {
                       child: ListView(
                         padding: const EdgeInsets.all(AppLayout.screenPadding),
                         children: [
-                          _StatTile(label: 'Баллы', value: '${_detail!.points}'),
+                          if (kMasterPointsEnabled)
+                            _StatTile(label: 'Баллы', value: '${_detail!.points}'),
                           _StatTile(label: 'Долг', value: '${_detail!.debt.toStringAsFixed(0)} TJS'),
                           _StatTile(label: 'Заказов', value: '${_detail!.ordersCount}'),
                           _StatTile(label: 'Потрачено', value: '${_detail!.totalSpent.toStringAsFixed(0)} TJS'),

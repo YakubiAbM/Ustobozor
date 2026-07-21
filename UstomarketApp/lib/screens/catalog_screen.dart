@@ -36,16 +36,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
     _loadCachedBrands();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final nav = Provider.of<NavigationProvider>(context, listen: false);
-      nav.addListener(_onNavChanged);
-      if (nav.currentIndex == 2) _ensureFetch();
+      _ensureFetch();
     });
-  }
-
-  void _onNavChanged() {
-    if (!mounted) return;
-    final nav = Provider.of<NavigationProvider>(context, listen: false);
-    if (nav.currentIndex == 2) _ensureFetch();
   }
 
   void _ensureFetch() {
@@ -57,8 +49,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   @override
   void dispose() {
-    Provider.of<NavigationProvider>(context, listen: false)
-        .removeListener(_onNavChanged);
     super.dispose();
   }
 

@@ -30,6 +30,7 @@
     check: '<path d="M5 12l4 4L19 6"/>',
     folder: '<path d="M4 7h5l2 2h9v10H4V7z"/>',
     lock: '<rect x="6" y="10" width="12" height="10" rx="2"/><path d="M8 10V8a4 4 0 018 0v2"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
   };
 
   global.icon = function icon(name, className, size) {

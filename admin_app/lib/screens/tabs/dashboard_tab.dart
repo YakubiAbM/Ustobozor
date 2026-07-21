@@ -153,25 +153,27 @@ class _DashboardBody extends StatelessWidget {
           else
             ...data.recentOrders.map((o) => _RecentOrderTile(order: o)),
           const SizedBox(height: 20),
-          const Text(
-            'Последние операции кассы',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppColors.text,
-            ),
-          ),
-          const SizedBox(height: 10),
-          if (data.recentTransactions.isEmpty)
-            const Text('Операций пока нет', style: TextStyle(color: AppColors.textSecondary))
-          else
-            ...data.recentTransactions.map(
-              (t) => _RecentTxTile(
-                name: t.masterName ?? '—',
-                amount: t.amount,
-                date: t.createdAt ?? '',
+          if (kMasterPointsEnabled) ...[
+            const Text(
+              'Последние операции кассы',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.text,
               ),
             ),
+            const SizedBox(height: 10),
+            if (data.recentTransactions.isEmpty)
+              const Text('Операций пока нет', style: TextStyle(color: AppColors.textSecondary))
+            else
+              ...data.recentTransactions.map(
+                (t) => _RecentTxTile(
+                  name: t.masterName ?? '—',
+                  amount: t.amount,
+                  date: t.createdAt ?? '',
+                ),
+              ),
+          ],
         ],
       ),
     );

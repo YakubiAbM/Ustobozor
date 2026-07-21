@@ -113,58 +113,60 @@ class _MasterProfileScreenState extends State<MasterProfileScreen> {
                 style: TextStyle(fontSize: 12, color: onSurface.withOpacity(0.6), height: 1.3),
               ),
               const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.masterStatsGradientStart,
-                      AppColors.accent,
-                      AppColors.masterStatsGradientEnd,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [BoxShadow(color: AppColors.accent.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.diamond, color: AppColors.accentContrastText, size: 28),
-                        const SizedBox(width: 10),
-                        Text(
-                          settings.t('master_balance'),
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: AppColors.accentContrastText.withValues(alpha: 0.75),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+              // Баллы мастера временно отключены (kMasterPointsEnabled).
+              if (kMasterPointsEnabled)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.masterStatsGradientStart,
+                        AppColors.accent,
+                        AppColors.masterStatsGradientEnd,
                       ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    const SizedBox(height: 12),
-                    if (master.points > 0)
-                      Text(
-                        '${master.points} ${settings.t('master_points_unit')}',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.accentContrastText,
-                        ),
-                      )
-                    else
-                      Text(
-                        settings.t('master_buy_to_get_points'),
-                        style: const TextStyle(fontSize: 15, color: Colors.white, height: 1.3),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [BoxShadow(color: AppColors.accent.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.diamond, color: AppColors.accentContrastText, size: 28),
+                          const SizedBox(width: 10),
+                          Text(
+                            settings.t('master_balance'),
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: AppColors.accentContrastText.withValues(alpha: 0.75),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
-                  ],
+                      const SizedBox(height: 12),
+                      if (master.points > 0)
+                        Text(
+                          '${master.points} ${settings.t('master_points_unit')}',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.accentContrastText,
+                          ),
+                        )
+                      else
+                        Text(
+                          settings.t('master_buy_to_get_points'),
+                          style: const TextStyle(fontSize: 15, color: Colors.white, height: 1.3),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
+              if (kMasterPointsEnabled) const SizedBox(height: 24),
               _buildAnnouncementBlock(context, settings, isDark, onSurface),
               const SizedBox(height: 32),
               SizedBox(

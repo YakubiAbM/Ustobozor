@@ -587,7 +587,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         Provider.of<NavigationProvider>(
                           context,
                           listen: false,
-                        ).setIndex(3);
+                        ).setIndex(NavigationProvider.tabMaterials);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.orange,
@@ -738,6 +738,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     } else {
       Navigator.of(context).pop();
     }
-    Provider.of<NavigationProvider>(context, listen: false).setIndex(3);
+    Provider.of<NavigationProvider>(context, listen: false)
+        .setIndex(NavigationProvider.tabMaterials);
   }
 }

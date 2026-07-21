@@ -248,13 +248,14 @@ class _MasterCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                '${master.points} б.',
-                style: const TextStyle(
-                  color: AppColors.accent,
-                  fontWeight: FontWeight.w700,
+              if (kMasterPointsEnabled)
+                Text(
+                  '${master.points} б.',
+                  style: const TextStyle(
+                    color: AppColors.accent,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
               if (master.debt > 0)
                 Text(
                   'долг ${master.debt.toStringAsFixed(0)}',

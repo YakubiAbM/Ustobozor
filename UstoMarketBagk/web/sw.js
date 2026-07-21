@@ -1,4 +1,4 @@
-const CACHE = 'ustobozor-web-v46';
+const CACHE = 'ustobozor-web-v47';
 const SHELL = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', (e) => {

@@ -1,7 +1,14 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../models/product.dart';
 
 class NavigationProvider with ChangeNotifier {
+  static const int tabHome = 0;
+  static const int tabMasters = 1;
+  static const int tabPublish = 2;
+  static const int tabMaterials = 3;
+  static const int tabCart = 4;
+  static const int tabProfile = 5;
+
   int _currentIndex = 0;
   Product? _detailProduct;
   String? _selectedBrand;
@@ -31,10 +38,8 @@ class NavigationProvider with ChangeNotifier {
   }
 
   void setIndex(int index) {
-    const profileIndex = 4;
-    const homeIndex = 0;
     final now = DateTime.now().millisecondsSinceEpoch;
-    if (index == profileIndex && _currentIndex == profileIndex) {
+    if (index == tabProfile && _currentIndex == tabProfile) {
       if (_lastProfileTapMs != null && now - _lastProfileTapMs! < 500) {
         _requestProfileRefresh = true;
       }
@@ -42,7 +47,7 @@ class NavigationProvider with ChangeNotifier {
     } else {
       _lastProfileTapMs = null;
     }
-    if (index == homeIndex && _currentIndex == homeIndex) {
+    if (index == tabHome && _currentIndex == tabHome) {
       if (_lastHomeTapMs != null && now - _lastHomeTapMs! < 500) {
         _requestHomeRefresh = true;
       }

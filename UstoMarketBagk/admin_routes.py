@@ -37,6 +37,7 @@ from auth import SUPERADMIN_SESSION_COOKIE, _is_superadmin_by_phone
 from notifications import create_notification, create_promo_for_all
 from order_actions import apply_order_status_change
 from image_utils import save_upload_as_webp
+from config import MASTER_POINTS_ENABLED
 
 try:
     import pandas as pd
@@ -1050,6 +1051,14 @@ def admin_points_redirect(request: Request, _user: MasterDB = Depends(require_ad
 
 @router.post("/admin/points/add")
 def admin_add_points(request: Request, identifier: str = Form(...), amount: int = Form(...), db: Session = Depends(get_db), _user: MasterDB = Depends(require_admin_permission("cashier"))):
+    if not MASTER_POINTS_ENABLED:
+        return templates.TemplateResponse(request, "cashier.html", {
+            "request": request,
+            "page": "cashier",
+            "success_msg": None,
+            "error_msg": "❌ Программа баллов временно отключена.",
+            **_admin_ctx(_user),
+        })
     master = _find_master_by_identifier(db, identifier)
     
     if master:
@@ -1118,6 +1127,12 @@ def admin_spend_points(
     _user: MasterDB = Depends(require_admin_permission("cashier")),
 ):
     """Списание баллов у мастера (по ID или телефону). Создаёт уведомление points_spent."""
+    if not MASTER_POINTS_ENABLED:
+        return templates.TemplateResponse(request, "cashier.html", {
+            "request": request, "page": "cashier",
+            "success_msg": None, "error_msg": "❌ Программа баллов временно отключена.",
+            **_admin_ctx(_user),
+        })
     master = _find_master_by_identifier(db, identifier)
     if not master:
         return templates.TemplateResponse(request, "cashier.html", {

@@ -34,6 +34,7 @@ from database import (
 )
 from order_actions import VALID_STATUSES, apply_order_status_change
 from search_engine import refresh_products_cache
+from config import MASTER_POINTS_ENABLED
 
 router = APIRouter(prefix="/admin/api", tags=["admin-mobile"])
 
@@ -583,6 +584,8 @@ def admin_api_points_add(
     db: Session = Depends(get_db),
     _user=Depends(require_admin_permission("cashier")),
 ):
+    if not MASTER_POINTS_ENABLED:
+        return PointsResult(ok=False, message="Программа баллов временно отключена")
     from notifications import create_notification
 
     master = _find_master_by_identifier(db, body.identifier)
@@ -1039,6 +1042,8 @@ def admin_api_points_spend(
     db: Session = Depends(get_db),
     _user=Depends(require_admin_permission("cashier")),
 ):
+    if not MASTER_POINTS_ENABLED:
+        return PointsResult(ok=False, message="Программа баллов временно отключена")
     from notifications import create_notification
 
     master = _find_master_by_identifier(db, body.identifier)
