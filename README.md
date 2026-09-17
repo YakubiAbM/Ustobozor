@@ -48,7 +48,7 @@ flutter run
 ## Домен / VPS
 
 - Prod: `https://ustobozor.tj`
-- VPS: `92.119.185.114`
+- VPS: `92.119.185.123`
 - API и PWA: backend на `:8000` за nginx
 
 ## Секреты

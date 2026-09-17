@@ -5,7 +5,7 @@ Usage (from UstoMarketBagk/):
   python3 scripts/generate_prod_env.py
 
 Then copy to the VPS as .env:
-  scp .env.production root@92.119.185.114:/root/Ustobozor/UstoMarketBagk/.env
+  scp .env.production ubuntu@92.119.185.123:~/Ustobozor/UstoMarketBagk/.env
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ def main() -> None:
     pg = _token(28)
     admin_pw = _token(16)
     jwt = secrets.token_hex(32)
-    body = f"""# PROD secrets for VPS 92.119.185.114 — DO NOT COMMIT
+    body = f"""# PROD secrets for VPS 92.119.185.123 — DO NOT COMMIT
 # Copy to server as .env
 
 POSTGRES_PASSWORD={pg}
