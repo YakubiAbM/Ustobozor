@@ -87,8 +87,6 @@ class MasterDB(Base):
     points = Column(Integer, default=0)
     debt = Column(Float, default=0.0, nullable=False)  # долг мастера (TJS), погашается через кассу
     barcode = Column(String, default="")
-    # Telegram chat_id для персональных уведомлений (опционально)
-    telegram_chat_id = Column(String(32), nullable=True)
     # 4-значный PIN для входа в админку (хэш; только у админов)
     pin_hash = Column(String(64), nullable=True)
     # Пароль мастера для входа в мобильное приложение (bcrypt)
@@ -200,7 +198,7 @@ class DeviceTokenDB(Base):
 
 
 class SiteSettingsDB(Base):
-    """Глобальные настройки: ссылки для Telegram-бота, APK и магазин."""
+    """Глобальные настройки: ссылки на соцсети, APK и магазин."""
     __tablename__ = "site_settings"
     id = Column(Integer, primary_key=True, index=True)
     telegram_channel_url = Column(String, default="")

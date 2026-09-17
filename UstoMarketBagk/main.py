@@ -14,7 +14,7 @@ from typing import List, Optional, Any
 import urllib.parse
 import re
 
-from fastapi import FastAPI, HTTPException, Depends, Query, Request, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Depends, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -52,8 +52,6 @@ from auth import (
     SUPERADMIN_SESSION_COOKIE,
     SUPERADMIN_SESSION_TTL_SECONDS,
 )
-from telegram_notify import notify_new_order, answer_callback_query, edit_message_text, edit_message_reply_markup, _send_to_chat
-from order_actions import apply_order_status_change
 
 try:
     from config import ALLOWED_ORIGINS, CORS_ALLOW_ALL, SUPERADMIN_PHONE_NORM, SUPERADMIN_PASSWORD, MASTER_POINTS_ENABLED
@@ -119,7 +117,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.get("/download-apk")
 def download_apk(file: str = Query("Ustobozor.apk", description="Имя APK-файла из папки web/")):
     """
-    Отдаёт APK как attachment, чтобы Telegram/WebView корректно инициировал скачивание.
+    Отдаёт APK как attachment для корректного скачивания в браузере/WebView.
     """
     safe_name = os.path.basename(file or "")
     if not re.match(r"^[A-Za-z0-9._\\-]+$", safe_name):
@@ -409,7 +407,6 @@ def get_site_about(db: Session = Depends(get_db)):
         "years_experience": 20,
         "instagram_url": (row.instagram_url or "").strip(),
         "tiktok_url": (row.tiktok_url or "").strip(),
-        "telegram_url": (row.telegram_channel_url or "").strip(),
         "whatsapp_url": (row.whatsapp_group_url or "").strip(),
     }
 
@@ -847,7 +844,7 @@ def get_orders_history(master: MasterDB = Depends(get_master_for_orders_history)
 
 @app.post("/orders", response_model=OrderResponse)
 def create_order_api(order: OrderCreate, db: Session = Depends(get_db)):
-    """Создание заказа из мобильного приложения; уведомление в Telegram."""
+    """Создание заказа из мобильного приложения."""
     items_data = [item.dict() for item in order.items]
     items_str = json.dumps(items_data, ensure_ascii=False)
     db_order = OrderDB(
@@ -864,10 +861,6 @@ def create_order_api(order: OrderCreate, db: Session = Depends(get_db)):
     db.add(db_order)
     db.commit()
     db.refresh(db_order)
-    notify_new_order(
-        db_order.id, order.client_name, order.client_phone, order.total_price, len(order.items),
-        payment_type=order.payment_type, client_address=order.client_address,
-    )
     payload = order.model_dump() if hasattr(order, "model_dump") else order.dict()
     payload["id"] = db_order.id
     payload["status"] = db_order.status
@@ -1005,7 +998,6 @@ def chat_action(request: Request, action: ChatAction, db: Session = Depends(get_
 def chat_submit(
     request: Request,
     submit: ChatSubmit,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     session = db.query(ChatSessionDB).filter(ChatSessionDB.session_id == submit.session_id).first()
@@ -1033,149 +1025,7 @@ def chat_submit(
     db.add(db_order); session.cart_json = "[]"; session.pending_items_json = "[]"; db.commit()
     db.refresh(db_order)
     print(f"✅ Заказ #{db_order.id} создан!")
-    background_tasks.add_task(
-        notify_new_order,
-        db_order.id,
-        submit.client_name,
-        submit.client_phone,
-        total,
-        len(cart),
-        payment_type=submit.payment_type,
-        client_address=submit.client_address,
-        comment=submit.comment,
-    )
     return {"status": "success", "order_id": db_order.id}
-
-# -----------------------------------------------------------------------------
-# Telegram webhook: обработка нажатий кнопок (смена статуса заказа)
-# -----------------------------------------------------------------------------
-
-STATUS_LABELS = {"new": "🆕 Новый", "processing": "⚙️ В работе", "completed": "✅ Выполнен", "canceled": "❌ Отменён"}
-
-
-def _apk_url_to_download_page(apk_url: str) -> str:
-    """
-    Превращает прямую ссылку на .apk в красивую страницу скачивания.
-    Страница: /web/download.html?apk=<оригинальная_apk_url>
-    """
-    try:
-        parsed = urllib.parse.urlparse(apk_url)
-        base = f"{parsed.scheme}://{parsed.netloc}"
-        qs = urllib.parse.urlencode({"apk": apk_url})
-        return f"{base}/download.html?{qs}"
-    except Exception:
-        return apk_url
-
-
-@app.post("/telegram/webhook")
-async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
-    """
-    Принимает update от Telegram. При нажатии кнопки под заказом (callback_data: order:ID:STATUS)
-    обновляет статус заказа в БД и редактирует сообщение в чате.
-    В Telegram нужно зарегистрировать webhook: https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://ВАШ_ДОМЕН/telegram/webhook
-    """
-    try:
-        body = await request.json()
-    except Exception:
-        return {"ok": True}
-
-    # Команда /start — приветствие и кнопки (канал, соцсети, APK, магазин)
-    msg = body.get("message")
-    if msg:
-        text = (msg.get("text") or "").strip()
-        chat_id = msg.get("chat", {}).get("id")
-        if text == "/start" and chat_id:
-            row = db.query(SiteSettingsDB).filter(SiteSettingsDB.id == 1).first()
-            if not row:
-                row = SiteSettingsDB(id=1)
-                db.add(row)
-                db.commit()
-                db.refresh(row)
-            buttons = []
-            if row.telegram_channel_url:
-                buttons.append([{"text": "📢 Канал Telegram", "url": row.telegram_channel_url}])
-            if row.whatsapp_group_url:
-                buttons.append([{"text": "💬 WhatsApp", "url": row.whatsapp_group_url}])
-            if row.instagram_url:
-                buttons.append([{"text": "📷 Instagram", "url": row.instagram_url}])
-            if row.tiktok_url:
-                buttons.append([{"text": "🎵 TikTok", "url": row.tiktok_url}])
-            if row.apk_url:
-                buttons.append([{"text": "📲 Скачать приложение", "url": _apk_url_to_download_page(row.apk_url)}])
-            if row.shop_url:
-                buttons.append([{"text": "🛒 Открыть магазин", "url": row.shop_url}])
-            welcome = (
-                "Салом! 👋\n"
-                "Ба боти «Ustobozor» хуш омадед!\n\n"
-                "Магозаи Ustobozor хама намуди махсулотхои сохтмони бо нархи дастрас\n\n"
-                "🧱 Масолеҳи сохтмонӣ бо нархи дастрас\n"
-                "📲 Барои фармоиш ва тамос — тугмаҳоро истифода баред\n\n"
-                "📋 Тугмаҳо\n\n"
-                "📱 Instagram\n"
-                "💬 Гурӯҳи Telegram\n"
-                "📲 Гурӯҳи WhatsApp\n"
-                "📥 Боргирии барнома\n\n"
-                "Барномаи моро зеркашӣ кунед ва фармоишро осон анҷом диҳед! 🚀"
-            )
-            reply_markup = {"inline_keyboard": buttons} if buttons else None
-            _send_to_chat(str(chat_id), welcome, reply_markup)
-        return {"ok": True}
-
-    callback = body.get("callback_query")
-    if not callback:
-        return {"ok": True}
-    cq_id = callback.get("id")
-    data = (callback.get("data") or "").strip()
-    message = callback.get("message") or {}
-    chat_id = message.get("chat", {}).get("id")
-    message_id = message.get("message_id")
-    if not data.startswith("order:") or not cq_id:
-        answer_callback_query(cq_id, "Неизвестная команда")
-        return {"ok": True}
-    parts = data.split(":")
-    if len(parts) != 3:
-        answer_callback_query(cq_id, "Ошибка формата")
-        return {"ok": True}
-    try:
-        order_id = int(parts[1])
-        new_status = parts[2].strip().lower()
-    except (ValueError, IndexError):
-        answer_callback_query(cq_id, "Ошибка")
-        return {"ok": True}
-    if new_status not in ("new", "processing", "completed", "canceled"):
-        answer_callback_query(cq_id, "Неверный статус")
-        return {"ok": True}
-    ok = apply_order_status_change(db, order_id, new_status)
-    label = STATUS_LABELS.get(new_status, new_status)
-    answer_callback_query(cq_id, f"Статус: {label}")
-    if chat_id and message_id:
-        old_text = (message.get("text") or "").strip()
-        new_text = old_text + f"\n\n✅ <b>Статус изменён:</b> {label}"
-        edit_message_text(chat_id, message_id, new_text)
-        edit_message_reply_markup(chat_id, message_id, {"inline_keyboard": []})
-    return {"ok": True}
-
-
-@app.get("/telegram/set_webhook")
-def telegram_set_webhook(url: str = Query(..., description="Полный URL вашего webhook (HTTPS)")):
-    """
-    Регистрирует webhook в Telegram. Вызовите один раз в браузере:
-    /telegram/set_webhook?url=https://ВАШ_ДОМЕН/telegram/webhook
-    """
-    import urllib.request
-    try:
-        from config import TELEGRAM_BOT_TOKEN
-    except ImportError:
-        TELEGRAM_BOT_TOKEN = ""
-    if not TELEGRAM_BOT_TOKEN:
-        return {"ok": False, "error": "TELEGRAM_BOT_TOKEN не задан"}
-    api_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={url}"
-    try:
-        with urllib.request.urlopen(api_url, timeout=10) as r:
-            result = json.loads(r.read().decode())
-            return result
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
 
 
 @app.on_event("startup")

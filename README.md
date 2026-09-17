@@ -8,7 +8,7 @@
 |-------|----------|
 | `UstomarketApp/` | Flutter-приложение для клиентов и мастеров |
 | `admin_app/` | Flutter-приложение админ-панели |
-| `UstoMarketBagk/` | Backend (FastAPI), PWA (`web/`), Telegram-бот |
+| `UstoMarketBagk/` | Backend (FastAPI) и PWA (`web/`) |
 | `deploy/` | Скрипты деплоя (nginx, VPS, SEO) |
 
 ## Быстрый старт

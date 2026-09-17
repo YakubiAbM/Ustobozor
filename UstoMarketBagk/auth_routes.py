@@ -1,6 +1,5 @@
 """
-Аутентификация мастеров: OTP через Telegram Gateway (+ Alif SMS stub),
-refresh/logout/me.
+Аутентификация мастеров: OTP по SMS (Alif stub), refresh/logout/me.
 """
 
 import logging
@@ -40,8 +39,6 @@ from services.otp_service import (
     save_otp,
     verify_otp_code,
 )
-from services.telegram_gateway import TelegramGatewayError, send_verification_message
-from telegram_notify import notify_master_authorized
 from services.auth_form_security import (
     assert_not_login_locked,
     clear_login_failures,
@@ -317,8 +314,6 @@ def _complete_login(db: Session, master: MasterDB, phone_norm: str, request: Req
     user_agent = request.headers.get("user-agent")
     save_refresh_token(db, master.id, refresh_token, ip=ip, user_agent=user_agent)
 
-    notify_master_authorized(master.name, master.phone)
-
     out = {
         "status": "success",
         "access_token": access_token,
@@ -338,7 +333,7 @@ def _complete_login(db: Session, master: MasterDB, phone_norm: str, request: Req
 @router.post("/request-code")
 @_rate_limit("10/minute")
 def request_code(req: RequestCodeBody, request: Request):
-    """Telegram Gateway → Alif SMS (stub). Rate limit: 3 запроса / 15 мин."""
+    """OTP по SMS (Alif stub). Rate limit: 3 запроса / 15 мин."""
     if not is_otp_store_ready():
         raise HTTPException(status_code=503, detail="OTP storage unavailable")
 
@@ -359,39 +354,12 @@ def request_code(req: RequestCodeBody, request: Request):
             detail="Слишком много запросов кода. Попробуйте через 15 минут.",
         )
 
-    delivery: dict
-    try:
-        delivery = send_verification_message(phone_intl)
-        save_otp(phone_intl, "tg", request_id=delivery.get("request_id"))
-        if DEBUG:
-            print(
-                f"\n  >>> OTP Telegram ({phone_intl}) request_id={delivery.get('request_id')} <<<\n",
-                flush=True,
-            )
-    except TelegramGatewayError as exc:
-        logger.info("[auth] Telegram failed for %s: %s", phone_intl, exc)
-        if getattr(exc, "no_balance", False):
-            raise HTTPException(
-                status_code=503,
-                detail=(
-                    "Telegram Gateway: недостаточно баланса для отправки кода. "
-                    "Пополните счёт на gateway.telegram.org или подключите Alif SMS."
-                ),
-            )
-        if getattr(exc, "flood_wait", False):
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Telegram временно ограничил отправку. Подождите 1–2 минуты и попробуйте снова.",
-            )
-        # Резерв: Alif SMS (пока stub — реальная SMS не уходит)
-        code = generate_code()
-        delivery = send_alif_sms_backup(phone_intl, code)
-        save_otp(phone_intl, "sms", code=code)
-        if DEBUG:
-            print(f"\n  >>> OTP SMS stub ({phone_intl}): {code} <<<\n", flush=True)
-        delivery["sms_stub"] = True
-        if DEBUG:
-            delivery["dev_code"] = code
+    code = generate_code()
+    delivery = send_alif_sms_backup(phone_intl, code)
+    save_otp(phone_intl, "sms", code=code)
+    if DEBUG:
+        print(f"\n  >>> OTP SMS ({phone_intl}): {code} <<<\n", flush=True)
+        delivery["dev_code"] = code
 
     increment_rate_limit(phone_intl)
     return {"status": delivery["status"], "retry_after": delivery.get("retry_after", 60)}

@@ -163,28 +163,7 @@ def verify_otp_code(phone_intl: str, code: str) -> Tuple[bool, str, int]:
     if now - int(state.get("created_at", 0)) > OTP_TTL_SECONDS:
         return False, "Срок действия кода истёк. Запросите новый код.", 0
 
-    channel = state.get("channel") or "sms"
-    ok = False
-
-    if channel == "tg" and state.get("request_id"):
-        from services.telegram_gateway import TelegramGatewayError, check_verification_status
-
-        try:
-            ok = check_verification_status(state["request_id"], code)
-        except TelegramGatewayError as exc:
-            ok = False
-            msg = str(exc)
-            attempts = int(state.get("attempts") or 0) + 1
-            state["attempts"] = attempts
-            if attempts >= OTP_VERIFY_MAX_ATTEMPTS:
-                state["blocked_until"] = now + OTP_BLOCK_SECONDS
-                _save_otp_state(phone_intl, state)
-                return False, "Превышено число попыток. Номер временно заблокирован.", 0
-            _save_otp_state(phone_intl, state)
-            remaining = max(0, OTP_VERIFY_MAX_ATTEMPTS - attempts)
-            return False, msg or "Неверный код", remaining
-    else:
-        ok = state.get("code_hash") == _hash_code(code)
+    ok = state.get("code_hash") == _hash_code(code)
 
     if ok:
         r = _get_redis()

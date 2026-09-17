@@ -1119,7 +1119,6 @@ async function fetchSiteAbout() {
       years_experience: 20,
       instagram_url: "",
       tiktok_url: "",
-      telegram_url: "",
       whatsapp_url: "",
     };
   }
@@ -3046,7 +3045,6 @@ function renderAbout() {
   const socials = [
     { key: "instagram_url", label: "Instagram", icon: "📷" },
     { key: "tiktok_url", label: "TikTok", icon: "🎵" },
-    { key: "telegram_url", label: "Telegram", icon: "✈️" },
     { key: "whatsapp_url", label: "WhatsApp", icon: "💬" },
   ];
 

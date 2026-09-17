@@ -63,13 +63,7 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0").strip()
 OTP_BACKEND = os.getenv("OTP_BACKEND", "memory").strip().lower()
 
 # -----------------------------------------------------------------------------
-# Telegram Gateway (OTP в приложение Telegram пользователя)
-# -----------------------------------------------------------------------------
-TELEGRAM_GATEWAY_TOKEN = os.getenv("TELEGRAM_GATEWAY_TOKEN", "").strip()
-TELEGRAM_GATEWAY_TTL = _env_int("TELEGRAM_GATEWAY_TTL", 300)
-
-# -----------------------------------------------------------------------------
-# Alif SMS (резервный канал; пока заглушка)
+# Alif SMS (OTP мастерам; пока заглушка без реального контракта)
 # -----------------------------------------------------------------------------
 ALIF_SMS_API_KEY = os.getenv("ALIF_SMS_API_KEY", "LOCAL_STUB_NO_CONTRACT").strip()
 
@@ -111,11 +105,6 @@ CORS_ALLOW_ALL = len(ALLOWED_ORIGINS) == 0 and DEBUG
 TRUSTED_HOSTS_STR = os.getenv("TRUSTED_HOSTS", "")
 TRUSTED_HOSTS: List[str] = [h.strip() for h in TRUSTED_HOSTS_STR.split(",") if h.strip()]
 
-# -----------------------------------------------------------------------------
-# Telegram (уведомления: коды входа, заказы, авторизации)
-# -----------------------------------------------------------------------------
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
 
 # -----------------------------------------------------------------------------
 # Push-уведомления (Firebase Cloud Messaging)

@@ -319,7 +319,7 @@ async def admin_edit_admin_save(
 
 
 # -----------------------------------------------------------------------------
-# Настройки: ссылки для Telegram-бота (канал, соцсети, APK, магазин)
+# Настройки: ссылки для соцсетей, APK, магазин
 # -----------------------------------------------------------------------------
 
 @router.get("/admin/settings/social")
@@ -328,7 +328,7 @@ def admin_settings_social_page(
     db: Session = Depends(get_db),
     _user = Depends(require_superadmin),
 ):
-    """Страница редактирования ссылок для бота (канал, WhatsApp, соцсети, APK, магазин)."""
+    """Страница редактирования ссылок (WhatsApp, соцсети, APK, магазин)."""
     row = db.query(SiteSettingsDB).filter(SiteSettingsDB.id == 1).first()
     if not row:
         row = SiteSettingsDB(id=1)
@@ -347,19 +347,17 @@ def admin_settings_social_page(
 def admin_settings_social_save(
     db: Session = Depends(get_db),
     _user = Depends(require_superadmin),
-    telegram_channel_url: str = Form(""),
     whatsapp_group_url: str = Form(""),
     instagram_url: str = Form(""),
     tiktok_url: str = Form(""),
     apk_url: str = Form(""),
     shop_url: str = Form(""),
 ):
-    """Сохранить ссылки для бота."""
+    """Сохранить ссылки для приложения и PWA."""
     row = db.query(SiteSettingsDB).filter(SiteSettingsDB.id == 1).first()
     if not row:
         row = SiteSettingsDB(id=1)
         db.add(row)
-    row.telegram_channel_url = (telegram_channel_url or "").strip()
     row.whatsapp_group_url = (whatsapp_group_url or "").strip()
     row.instagram_url = (instagram_url or "").strip()
     row.tiktok_url = (tiktok_url or "").strip()
