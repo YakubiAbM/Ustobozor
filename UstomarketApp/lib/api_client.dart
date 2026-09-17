@@ -127,7 +127,8 @@ Future<http.Response> apiPost(String path, {Map<String, dynamic>? body}) {
       return r;
     }
     if (r.statusCode >= 400 && r.statusCode < 500) {
-      throw Exception(_parseErrorMessage(r));
+      // Не ретраим клиентские ошибки (409 «уже зарегистрирован» и т.п.).
+      throw ApiClientException(_parseErrorMessage(r));
     }
     throw Exception('HTTP ${r.statusCode}');
   }, label: 'POST $path');
@@ -180,6 +181,7 @@ Future<http.Response> apiPostWithBearer(
   String path,
   String token, {
   Map<String, dynamic>? body,
+  Set<int> acceptedStatusCodes = const <int>{},
 }) {
   return _withRetry(() async {
     await ApiReady.wait();
@@ -194,7 +196,10 @@ Future<http.Response> apiPostWithBearer(
           body: body != null ? jsonEncode(body) : null,
         )
         .timeout(_timeout);
-    if (r.statusCode >= 200 && r.statusCode < 300) return r;
+    if ((r.statusCode >= 200 && r.statusCode < 300) ||
+        acceptedStatusCodes.contains(r.statusCode)) {
+      return r;
+    }
     if (r.statusCode >= 400 && r.statusCode < 500) {
       throw ApiClientException(_parseErrorMessage(r));
     }

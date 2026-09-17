@@ -21,10 +21,13 @@ import 'providers/chat_order_provider.dart';
 import 'providers/master_auth_provider.dart';
 import 'providers/client_auth_provider.dart';
 import 'providers/notifications_provider.dart';
+import 'providers/app_mode_provider.dart';
 
 import 'screens/main_layout.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 bool get _firebaseSupported =>
     !kIsWeb &&
@@ -66,6 +69,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => MasterAuthProvider()),
         ChangeNotifierProvider(create: (_) => ClientAuthProvider()),
         ChangeNotifierProvider(create: (_) => NotificationsProvider()),
+        ChangeNotifierProvider(create: (_) => AppModeProvider()),
       ],
       child:
           Selector<
@@ -88,6 +92,7 @@ class MyApp extends StatelessWidget {
               );
               return MaterialApp(
                 navigatorKey: navigatorKey,
+                scaffoldMessengerKey: scaffoldMessengerKey,
                 title: 'Ustobozor',
                 debugShowCheckedModeBanner: false,
                 themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,

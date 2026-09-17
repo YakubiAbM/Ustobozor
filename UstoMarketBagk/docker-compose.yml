@@ -5,8 +5,7 @@ services:
     env_file:
       - .env
     environment:
-      # В контейнере Postgres доступен по имени сервиса "db"
-      - DATABASE_URL=postgresql://postgres:7900@db:5432/market
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/market
       - REDIS_URL=redis://redis:6379/0
       - OTP_BACKEND=redis
     ports:
@@ -28,7 +27,7 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql://postgres:7900@db:5432/market
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/market
     restart: always
     depends_on:
       db:
@@ -52,7 +51,7 @@ services:
     environment:
       - POSTGRES_DB=market
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=7900
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -63,4 +62,3 @@ services:
 
 volumes:
   pgdata:
-

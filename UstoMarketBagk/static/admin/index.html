@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ustobozor Admin</title>
+  <link rel="stylesheet" href="/static/admin/styles.css" />
+</head>
+<body>
+  <div id="login-view" class="login-wrap hidden">
+    <form id="login-form" class="login-card">
+      <div class="brand">Ustobozor</div>
+      <h1>Админ-панель</h1>
+      <p class="muted">Вход по телефону и паролю</p>
+      <label>Телефон
+        <input id="login-phone" type="tel" inputmode="numeric" autocomplete="username"
+               placeholder="987654321" required />
+      </label>
+      <label>Пароль / PIN
+        <input id="login-pass" type="password" autocomplete="current-password"
+               placeholder="••••" required />
+      </label>
+      <button type="submit" id="login-btn">Войти</button>
+      <p id="login-error" class="error"></p>
+    </form>
+  </div>
+
+  <div id="app-view" class="app hidden">
+    <aside class="sidebar">
+      <div class="sidebar-brand">Ustobozor</div>
+      <nav id="nav"></nav>
+      <button type="button" id="logout-btn" class="logout">Выйти</button>
+    </aside>
+    <main class="main">
+      <header class="top">
+        <h1 id="page-title">Админка</h1>
+        <div id="user-chip" class="chip"></div>
+      </header>
+      <div id="flash" class="flash hidden"></div>
+      <section id="content"></section>
+    </main>
+  </div>
+
+  <script src="/static/admin/app.js"></script>
+</body>
+</html>

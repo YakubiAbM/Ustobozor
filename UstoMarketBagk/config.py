@@ -88,7 +88,7 @@ def _norm_phone_for_env(s: str) -> str:
 
 
 # Супер-админ: вход по логину (номер) и паролю из .env.
-# Номер: +992986505650 или 986505650. Пароль: например 7900.
+# Пример: SUPERADMIN_PHONE_NORM=987654321, SUPERADMIN_PASSWORD=1221
 SUPERADMIN_PHONE_NORM = _norm_phone_for_env(os.getenv("SUPERADMIN_PHONE_NORM", "").strip())
 SUPERADMIN_PASSWORD = os.getenv("SUPERADMIN_PASSWORD", "").strip()
 

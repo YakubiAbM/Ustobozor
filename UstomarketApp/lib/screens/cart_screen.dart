@@ -40,16 +40,30 @@ class _CartScreenState extends State<CartScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(15, 15, 15, 10),
+              padding: const EdgeInsets.fromLTRB(8, 15, 15, 10),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Ustobozor',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
+                  IconButton(
+                    icon: Icon(
+                      Icons.arrow_back,
                       color: theme.colorScheme.onSurface,
+                    ),
+                    onPressed: () {
+                      Provider.of<NavigationProvider>(
+                        context,
+                        listen: false,
+                      ).setIndex(NavigationProvider.tabMaterials);
+                    },
+                    tooltip: settings.t('materials'),
+                  ),
+                  Expanded(
+                    child: Text(
+                      'Ustobozor',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: theme.colorScheme.onSurface,
+                      ),
                     ),
                   ),
                 ],

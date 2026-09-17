@@ -525,3 +525,24 @@ def ensure_admin_role_for_phone_norm(db: Session, phone_norm: str) -> None:
         master.role = "admin"
         master.is_superadmin = 1  # первый админ — супер-админ
         db.commit()
+
+
+async def get_current_client(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db: Session = Depends(get_db),
+) -> ClientDB:
+    """Bearer JWT с kind=client → ClientDB."""
+    token = credentials.credentials if credentials and credentials.credentials else None
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    payload = decode_access_token(token)
+    if not payload or payload.get("kind") != "client":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    client = db.query(ClientDB).filter(ClientDB.id == int(payload["sub"])).first()
+    if not client:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    return client

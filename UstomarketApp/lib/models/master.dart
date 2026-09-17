@@ -24,6 +24,8 @@ class Master {
   final String description;
   final String image;
   final double rating;
+  final int reviewsCount;
+  final String city;
   final String? priceFrom;
   final int? experience;
   final List<MasterPriceItem> priceList;
@@ -37,6 +39,8 @@ class Master {
     required this.description,
     required this.image,
     required this.rating,
+    this.reviewsCount = 0,
+    this.city = '',
     this.priceFrom,
     this.experience,
     List<MasterPriceItem>? priceList,
@@ -84,6 +88,8 @@ class Master {
     String? priceFrom = json['price_from']?.toString() ?? json['price']?.toString();
     if (priceFrom == null && priceList.isNotEmpty) priceFrom = priceList.first.price.toString();
 
+    final cityRaw = json['city']?.toString().trim() ?? '';
+
     return Master(
       id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
       name: json['name'] ?? 'Мастер',
@@ -92,6 +98,8 @@ class Master {
       description: json['description']?.toString() ?? '',
       image: json['image']?.toString() ?? '',
       rating: double.tryParse(json['rating'].toString()) ?? 5.0,
+      reviewsCount: int.tryParse('${json['reviews_count'] ?? 0}') ?? 0,
+      city: cityRaw == 'null' ? '' : cityRaw,
       priceFrom: priceFrom,
       experience: json['experience'] is int ? json['experience'] as int? : int.tryParse(json['experience']?.toString() ?? ''),
       priceList: priceList,

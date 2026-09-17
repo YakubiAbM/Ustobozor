@@ -24,6 +24,7 @@ class _AddProjectPageState extends State<AddProjectPage> {
   final _titleController = TextEditingController();
   final _clientController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
   final _incomeController = TextEditingController();
   final _receivedAmountController = TextEditingController();
   final _noteController = TextEditingController();
@@ -34,6 +35,7 @@ class _AddProjectPageState extends State<AddProjectPage> {
   late List<String> _afterImages;
   String? _beforeVideo;
   String? _afterVideo;
+  bool _isCompleted = false;
   bool _saving = false;
 
   bool get _isEditing => widget.initialProject != null;
@@ -45,6 +47,7 @@ class _AddProjectPageState extends State<AddProjectPage> {
     _titleController.text = project?.title ?? '';
     _clientController.text = project?.client ?? '';
     _phoneController.text = project?.phone ?? '';
+    _addressController.text = project?.address ?? '';
     _incomeController.text = project == null
         ? ''
         : _formatIncome(project.income);
@@ -57,6 +60,7 @@ class _AddProjectPageState extends State<AddProjectPage> {
     _afterImages = List<String>.from(project?.afterImages ?? const []);
     _beforeVideo = project?.beforeVideo;
     _afterVideo = project?.afterVideo;
+    _isCompleted = project?.isCompleted ?? false;
   }
 
   @override
@@ -64,6 +68,7 @@ class _AddProjectPageState extends State<AddProjectPage> {
     _titleController.dispose();
     _clientController.dispose();
     _phoneController.dispose();
+    _addressController.dispose();
     _incomeController.dispose();
     _receivedAmountController.dispose();
     _noteController.dispose();
@@ -107,6 +112,13 @@ class _AddProjectPageState extends State<AddProjectPage> {
                 controller: _phoneController,
                 hint: settings.t('project_client_phone_hint'),
                 keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 16),
+              _inputLabel(settings.t('project_address')),
+              const SizedBox(height: 8),
+              _textField(
+                controller: _addressController,
+                hint: settings.t('project_address_hint'),
               ),
               const SizedBox(height: 16),
               _inputLabel(settings.t('project_income')),
@@ -176,6 +188,14 @@ class _AddProjectPageState extends State<AddProjectPage> {
                 controller: _noteController,
                 hint: settings.t('project_note_hint'),
                 maxLines: 4,
+              ),
+              const SizedBox(height: 12),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: Text(settings.t('project_mark_completed')),
+                value: _isCompleted,
+                activeColor: AppColors.accent,
+                onChanged: (v) => setState(() => _isCompleted = v),
               ),
               const SizedBox(height: 16),
               _buildImageSection(
@@ -607,19 +627,25 @@ class _AddProjectPageState extends State<AddProjectPage> {
 
     setState(() => _saving = true);
     try {
+      final existing = widget.initialProject;
       final project = ProjectModel(
-        id: widget.initialProject?.id ?? const Uuid().v4(),
+        id: existing?.id ?? const Uuid().v4(),
         title: title,
         client: _clientController.text.trim(),
         phone: _phoneController.text.trim(),
+        address: _addressController.text.trim(),
         income: income,
         receivedAmount: receivedAmount,
         date: _selectedDate,
         note: _noteController.text.trim(),
+        isCompleted: _isCompleted,
         beforeImages: List<String>.from(_beforeImages),
         afterImages: List<String>.from(_afterImages),
         beforeVideo: _beforeVideo,
         afterVideo: _afterVideo,
+        checklist: existing?.checklist ?? const [],
+        payments: existing?.payments ?? const [],
+        sketches: existing?.sketches ?? const [],
       );
 
       if (_isEditing) {

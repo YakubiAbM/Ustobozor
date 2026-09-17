@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import '../../api_client.dart';
 import '../../constants.dart';
 import '../../providers/settings_provider.dart';
+import '../../utils/admin_login_bridge.dart';
+import '../../utils/auth_form_guard.dart';
 import 'client_auth_helpers.dart';
 
 enum _ClientAuthStep { phone, password, register }
@@ -22,6 +24,8 @@ class _ClientLoginPhoneScreenState extends State<ClientLoginPhoneScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _honeypotController = TextEditingController();
+  late AuthFormGuard _formGuard;
 
   _ClientAuthStep _step = _ClientAuthStep.phone;
   bool _loading = false;
@@ -30,10 +34,17 @@ class _ClientLoginPhoneScreenState extends State<ClientLoginPhoneScreen> {
   String _phoneForApi = '';
 
   @override
+  void initState() {
+    super.initState();
+    _formGuard = AuthFormGuard();
+  }
+
+  @override
   void dispose() {
     _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _honeypotController.dispose();
     super.dispose();
   }
 
@@ -56,9 +67,33 @@ class _ClientLoginPhoneScreenState extends State<ClientLoginPhoneScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    messenger?.hideCurrentSnackBar();
+    messenger?.showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
+  }
+
+  bool _isAlreadyRegisteredError(Object e) {
+    final msg = e.toString().toLowerCase();
+    return msg.contains('уже зарегистрирован') ||
+        msg.contains('already registered') ||
+        msg.contains('введите код');
+  }
+
+  Map<String, dynamic> _guardBody([Map<String, dynamic>? extra]) {
+    return {
+      ..._formGuard.payloadExtras(),
+      if (_honeypotController.text.trim().isNotEmpty)
+        'website': _honeypotController.text.trim(),
+      if (extra != null) ...extra,
+    };
+  }
+
+  void _resetFormTiming() {
+    _formGuard = AuthFormGuard();
+    _honeypotController.clear();
   }
 
   Future<void> _checkPhone() async {
@@ -66,9 +101,19 @@ class _ClientLoginPhoneScreenState extends State<ClientLoginPhoneScreen> {
     final phone = _fullPhoneForApi();
     setState(() => _loading = true);
     try {
+      if (await isAdminPhone(phone)) {
+        if (!mounted) return;
+        _phoneForApi = phone;
+        _passwordController.clear();
+        _confirmPasswordController.clear();
+        _resetFormTiming();
+        setState(() => _step = _ClientAuthStep.password);
+        return;
+      }
+
       final response = await apiPost(
         '/auth/client/check-phone',
-        body: {'phone_number': phone},
+        body: _guardBody({'phone_number': phone}),
       );
       final body = json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (!mounted) return;
@@ -77,6 +122,7 @@ class _ClientLoginPhoneScreenState extends State<ClientLoginPhoneScreen> {
       _phoneForApi = phone;
       _passwordController.clear();
       _confirmPasswordController.clear();
+      _resetFormTiming();
 
       setState(() {
         _step = status == 'NOT_FOUND'
@@ -95,16 +141,28 @@ class _ClientLoginPhoneScreenState extends State<ClientLoginPhoneScreen> {
   Future<void> _login() async {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     final code = _passwordController.text.trim();
-    if (code.length < 4) {
+    if (code.length < 4 || code.length > 64) {
       _showError(settings.t('client_code_min'));
       return;
     }
 
     setState(() => _loading = true);
     try {
+      if (await tryEnterAdminPanel(
+        context,
+        phone: _phoneForApi,
+        password: code,
+      )) {
+        return;
+      }
+      if (!mounted) return;
+
       final response = await apiPost(
         '/auth/client/login',
-        body: {'phone_number': _phoneForApi, 'password': code},
+        body: _guardBody({
+          'phone_number': _phoneForApi,
+          'password': code,
+        }),
       );
       final body = json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (!mounted) return;
@@ -127,7 +185,7 @@ class _ClientLoginPhoneScreenState extends State<ClientLoginPhoneScreen> {
     final pwd = _passwordController.text.trim();
     final confirm = _confirmPasswordController.text.trim();
 
-    if (pwd.length < 4) {
+    if (pwd.length < 4 || pwd.length > 64) {
       _showError(settings.t('client_code_min'));
       return;
     }
@@ -138,9 +196,21 @@ class _ClientLoginPhoneScreenState extends State<ClientLoginPhoneScreen> {
 
     setState(() => _loading = true);
     try {
+      if (await tryEnterAdminPanel(
+        context,
+        phone: _phoneForApi,
+        password: pwd,
+      )) {
+        return;
+      }
+      if (!mounted) return;
+
       final response = await apiPost(
         '/auth/client/register',
-        body: {'phone_number': _phoneForApi, 'password': pwd},
+        body: _guardBody({
+          'phone_number': _phoneForApi,
+          'password': pwd,
+        }),
       );
       final body = json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (!mounted) return;
@@ -150,7 +220,18 @@ class _ClientLoginPhoneScreenState extends State<ClientLoginPhoneScreen> {
         _showError(body['message'] as String? ?? settings.t('client_login_failed'));
       }
     } catch (e) {
-      if (mounted) {
+      if (!mounted) return;
+      if (_isAlreadyRegisteredError(e)) {
+        setState(() {
+          _step = _ClientAuthStep.password;
+          _passwordController.clear();
+          _confirmPasswordController.clear();
+        });
+        _resetFormTiming();
+        _showError(
+          e.toString().replaceFirst(RegExp(r'^Exception:\s*'), ''),
+        );
+      } else {
         _showError(e.toString().replaceFirst(RegExp(r'^Exception:\s*'), ''));
       }
     } finally {
@@ -163,6 +244,7 @@ class _ClientLoginPhoneScreenState extends State<ClientLoginPhoneScreen> {
       _step = _ClientAuthStep.phone;
       _passwordController.clear();
       _confirmPasswordController.clear();
+      _resetFormTiming();
     });
   }
 
@@ -194,6 +276,14 @@ class _ClientLoginPhoneScreenState extends State<ClientLoginPhoneScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Offstage(
+                offstage: true,
+                child: TextField(
+                  controller: _honeypotController,
+                  autofillHints: const [],
+                  decoration: const InputDecoration(labelText: 'Website'),
+                ),
+              ),
               const SizedBox(height: 16),
               if (_step == _ClientAuthStep.phone) ...[
                 Text(
@@ -313,8 +403,10 @@ class _ClientLoginPhoneScreenState extends State<ClientLoginPhoneScreen> {
     return TextField(
       controller: controller,
       obscureText: obscure,
+      maxLength: 64,
       decoration: InputDecoration(
         labelText: label,
+        counterText: '',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         filled: true,
         fillColor: fillColor,

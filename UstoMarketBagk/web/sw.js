@@ -1,4 +1,4 @@
-const CACHE = 'ustobozor-web-v47';
+const CACHE = 'ustobozor-web-v48';
 const SHELL = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', (e) => {
@@ -17,7 +17,7 @@ self.addEventListener('activate', (e) => {
 function isWebAsset(url) {
   const p = url.pathname;
   if (p.startsWith('/static/')) return true;
-  if (p === '/' || p.startsWith('/app.') || p.startsWith('/icons.') || p.startsWith('/sw.js') || p.startsWith('/manifest.') || p.startsWith('/icon.')) return true;
+  if (p === '/' || p.startsWith('/app.') || p.startsWith('/marketplace.') || p.startsWith('/icons.') || p.startsWith('/sw.js') || p.startsWith('/manifest.') || p.startsWith('/icon.')) return true;
   return false;
 }
 

@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import '../../api_client.dart';
 import '../../constants.dart';
 import '../../providers/settings_provider.dart';
+import '../../utils/admin_login_bridge.dart';
+import '../../utils/auth_form_guard.dart';
 import 'master_auth_helpers.dart';
 
 enum _AuthStep { phone, password, resetPassword, register }
@@ -24,6 +26,8 @@ class _MasterLoginPhoneScreenState extends State<MasterLoginPhoneScreen> {
   final _nameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _honeypotController = TextEditingController();
+  late AuthFormGuard _formGuard;
 
   _AuthStep _step = _AuthStep.phone;
   bool _loading = false;
@@ -32,11 +36,18 @@ class _MasterLoginPhoneScreenState extends State<MasterLoginPhoneScreen> {
   String _phoneForApi = '';
 
   @override
+  void initState() {
+    super.initState();
+    _formGuard = AuthFormGuard();
+  }
+
+  @override
   void dispose() {
     _phoneController.dispose();
     _nameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _honeypotController.dispose();
     super.dispose();
   }
 
@@ -59,9 +70,35 @@ class _MasterLoginPhoneScreenState extends State<MasterLoginPhoneScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    messenger?.hideCurrentSnackBar();
+    messenger?.showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
+  }
+
+  bool _isAlreadyRegisteredError(Object e) {
+    final msg = e.toString().toLowerCase();
+    return msg.contains('уже зарегистрирован') ||
+        msg.contains('already registered') ||
+        msg.contains('аллакай сабт');
+  }
+
+  Map<String, dynamic> _guardBody([Map<String, dynamic>? extra]) {
+    final body = <String, dynamic>{
+      ..._formGuard.payloadExtras(),
+      // Если бот заполнил скрытое поле — сервер отклонит запрос.
+      if (_honeypotController.text.trim().isNotEmpty)
+        'website': _honeypotController.text.trim(),
+      if (extra != null) ...extra,
+    };
+    return body;
+  }
+
+  void _resetFormTiming() {
+    _formGuard = AuthFormGuard();
+    _honeypotController.clear();
   }
 
   Future<void> _checkPhone() async {
@@ -69,9 +106,20 @@ class _MasterLoginPhoneScreenState extends State<MasterLoginPhoneScreen> {
     final phone = _fullPhoneForApi();
     setState(() => _loading = true);
     try {
+      // Админский номер → сразу пароль (не форма регистрации).
+      if (await isAdminPhone(phone)) {
+        if (!mounted) return;
+        _phoneForApi = phone;
+        _passwordController.clear();
+        _confirmPasswordController.clear();
+        _resetFormTiming();
+        setState(() => _step = _AuthStep.password);
+        return;
+      }
+
       final response = await apiPost(
         '/auth/check-phone',
-        body: {'phone_number': phone},
+        body: _guardBody({'phone_number': phone}),
       );
       final body = json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (!mounted) return;
@@ -80,6 +128,7 @@ class _MasterLoginPhoneScreenState extends State<MasterLoginPhoneScreen> {
       _phoneForApi = phone;
       _passwordController.clear();
       _confirmPasswordController.clear();
+      _resetFormTiming();
 
       if (status == 'NOT_FOUND') {
         setState(() => _step = _AuthStep.register);
@@ -104,12 +153,28 @@ class _MasterLoginPhoneScreenState extends State<MasterLoginPhoneScreen> {
       _showError(settings.t('master_password_min'));
       return;
     }
+    if (password.trim().length > 64) {
+      _showError(settings.t('master_password_min'));
+      return;
+    }
 
     setState(() => _loading = true);
     try {
+      if (await tryEnterAdminPanel(
+        context,
+        phone: _phoneForApi,
+        password: password,
+      )) {
+        return;
+      }
+      if (!mounted) return;
+
       final response = await apiPost(
         '/auth/login',
-        body: {'phone_number': _phoneForApi, 'password': password},
+        body: _guardBody({
+          'phone_number': _phoneForApi,
+          'password': password,
+        }),
       );
       final body = json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (!mounted) return;
@@ -139,6 +204,10 @@ class _MasterLoginPhoneScreenState extends State<MasterLoginPhoneScreen> {
       _showError(settings.t('master_password_min'));
       return;
     }
+    if (pwd.trim().length > 64) {
+      _showError(settings.t('master_password_min'));
+      return;
+    }
     if (pwd != confirm) {
       _showError(settings.t('master_password_mismatch'));
       return;
@@ -148,7 +217,10 @@ class _MasterLoginPhoneScreenState extends State<MasterLoginPhoneScreen> {
     try {
       final response = await apiPost(
         '/auth/set-new-password',
-        body: {'phone_number': _phoneForApi, 'new_password': pwd},
+        body: _guardBody({
+          'phone_number': _phoneForApi,
+          'new_password': pwd,
+        }),
       );
       final body = json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (!mounted) return;
@@ -172,7 +244,7 @@ class _MasterLoginPhoneScreenState extends State<MasterLoginPhoneScreen> {
 
   Future<void> _register() async {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
-    final name = _nameController.text.trim();
+    final name = AuthFormGuard.sanitizeName(_nameController.text);
     final pwd = _passwordController.text;
     final confirm = _confirmPasswordController.text;
 
@@ -184,6 +256,10 @@ class _MasterLoginPhoneScreenState extends State<MasterLoginPhoneScreen> {
       _showError(settings.t('master_password_min'));
       return;
     }
+    if (pwd.trim().length > 64) {
+      _showError(settings.t('master_password_min'));
+      return;
+    }
     if (pwd != confirm) {
       _showError(settings.t('master_password_mismatch'));
       return;
@@ -191,13 +267,22 @@ class _MasterLoginPhoneScreenState extends State<MasterLoginPhoneScreen> {
 
     setState(() => _loading = true);
     try {
+      if (await tryEnterAdminPanel(
+        context,
+        phone: _phoneForApi,
+        password: pwd,
+      )) {
+        return;
+      }
+      if (!mounted) return;
+
       final response = await apiPost(
         '/auth/register',
-        body: {
+        body: _guardBody({
           'phone_number': _phoneForApi,
           'password': pwd,
           'name': name,
-        },
+        }),
       );
       final body = json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (!mounted) return;
@@ -212,7 +297,18 @@ class _MasterLoginPhoneScreenState extends State<MasterLoginPhoneScreen> {
         _showError(body['message'] as String? ?? settings.t('master_login_failed'));
       }
     } catch (e) {
-      if (mounted) {
+      if (!mounted) return;
+      if (_isAlreadyRegisteredError(e)) {
+        setState(() {
+          _step = _AuthStep.password;
+          _passwordController.clear();
+          _confirmPasswordController.clear();
+        });
+        _resetFormTiming();
+        _showError(
+          e.toString().replaceFirst(RegExp(r'^Exception:\s*'), ''),
+        );
+      } else {
         _showError(e.toString().replaceFirst(RegExp(r'^Exception:\s*'), ''));
       }
     } finally {
@@ -225,6 +321,7 @@ class _MasterLoginPhoneScreenState extends State<MasterLoginPhoneScreen> {
       _step = _AuthStep.phone;
       _passwordController.clear();
       _confirmPasswordController.clear();
+      _resetFormTiming();
     });
   }
 
@@ -255,6 +352,17 @@ class _MasterLoginPhoneScreenState extends State<MasterLoginPhoneScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Honeypot: скрыто от пользователя, боты часто заполняют.
+              Offstage(
+                offstage: true,
+                child: TextField(
+                  controller: _honeypotController,
+                  autofillHints: const [],
+                  decoration: const InputDecoration(
+                    labelText: 'Website',
+                  ),
+                ),
+              ),
               const SizedBox(height: 16),
               if (_step == _AuthStep.phone) ...[
                 Text(
@@ -377,8 +485,13 @@ class _MasterLoginPhoneScreenState extends State<MasterLoginPhoneScreen> {
                 TextField(
                   controller: _nameController,
                   textCapitalization: TextCapitalization.words,
+                  maxLength: 80,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.deny(RegExp(r'[<>]')),
+                  ],
                   decoration: InputDecoration(
                     labelText: settings.t('your_name'),
+                    counterText: '',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -430,8 +543,10 @@ class _MasterLoginPhoneScreenState extends State<MasterLoginPhoneScreen> {
       controller: controller,
       obscureText: obscure,
       keyboardType: TextInputType.visiblePassword,
+      maxLength: 64,
       decoration: InputDecoration(
         labelText: label,
+        counterText: '',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         filled: true,
         fillColor: fillColor,

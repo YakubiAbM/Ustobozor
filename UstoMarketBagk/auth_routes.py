@@ -42,6 +42,14 @@ from services.otp_service import (
 )
 from services.telegram_gateway import TelegramGatewayError, send_verification_message
 from telegram_notify import notify_master_authorized
+from services.auth_form_security import (
+    assert_not_login_locked,
+    clear_login_failures,
+    guard_auth_form,
+    record_login_failure,
+    sanitize_display_name,
+    validate_password_or_code,
+)
 
 try:
     from rate_limit import limiter
@@ -75,22 +83,30 @@ class RefreshRequest(BaseModel):
 
 class PhoneBody(BaseModel):
     phone_number: str
+    website: Optional[str] = None  # honeypot
+    form_started_at: Optional[float] = None
 
 
 class LoginPasswordBody(BaseModel):
     phone_number: str
     password: str
+    website: Optional[str] = None
+    form_started_at: Optional[float] = None
 
 
 class SetNewPasswordBody(BaseModel):
     phone_number: str
     new_password: str
+    website: Optional[str] = None
+    form_started_at: Optional[float] = None
 
 
 class RegisterBody(BaseModel):
     phone_number: str
     password: str
     name: Optional[str] = None
+    website: Optional[str] = None
+    form_started_at: Optional[float] = None
 
 
 def _resolve_phone(phone_raw: str) -> tuple[str, str]:
@@ -120,18 +136,21 @@ def _phone_check_status(master: Optional[MasterDB]) -> str:
     return "PASSWORD_REQUIRED"
 
 
-def _validate_password_strength(password: str) -> None:
-    pwd = (password or "").strip()
-    if len(pwd) < 4:
-        raise HTTPException(status_code=400, detail="Пароль должен быть не короче 4 символов")
-    if len(pwd) > 64:
-        raise HTTPException(status_code=400, detail="Пароль слишком длинный")
+def _login_lock_key(phone_norm: str, request: Request) -> str:
+    ip = request.client.host if request.client else "unknown"
+    return f"master:{phone_norm}:{ip}"
 
 
 @router.post("/check-phone")
-@_rate_limit("30/minute")
+@_rate_limit("20/minute")
 def check_phone(req: PhoneBody, request: Request, db: Session = Depends(get_db)):
     """Проверка номера: NOT_FOUND | RESET_REQUIRED | PASSWORD_REQUIRED."""
+    guard_auth_form(
+        request,
+        website=req.website,
+        form_started_at=req.form_started_at,
+        check_timing=False,
+    )
     try:
         phone_intl, phone_norm = _resolve_phone(req.phone_number)
     except ValueError:
@@ -139,25 +158,27 @@ def check_phone(req: PhoneBody, request: Request, db: Session = Depends(get_db))
 
     master = _find_master_by_phone(db, phone_norm)
     status_value = _phone_check_status(master)
-    out = {"status": status_value, "phone_number": phone_intl}
-    if master:
-        out["master_id"] = master.id
-        out["name"] = master.name
-    return out
+    # Не отдаём имя/id — меньше данных для перебора номеров
+    return {"status": status_value, "phone_number": phone_intl}
 
 
 @router.post("/login")
-@_rate_limit("20/minute")
+@_rate_limit("15/minute")
 def login_password(req: LoginPasswordBody, request: Request, db: Session = Depends(get_db)):
     """Вход по телефону и паролю."""
+    guard_auth_form(request, website=req.website, form_started_at=req.form_started_at)
     try:
         phone_intl, phone_norm = _resolve_phone(req.phone_number)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid phone number")
 
+    lock_key = _login_lock_key(phone_norm, request)
+    assert_not_login_locked(lock_key)
+
     master = _find_master_by_phone(db, phone_norm)
     if not master:
-        raise HTTPException(status_code=404, detail="Пользователь не найден")
+        record_login_failure(lock_key)
+        raise HTTPException(status_code=401, detail="Неверный телефон или пароль")
 
     if int(getattr(master, "is_password_reset", 0) or 0) == 1:
         raise HTTPException(
@@ -166,26 +187,29 @@ def login_password(req: LoginPasswordBody, request: Request, db: Session = Depen
         )
 
     if not verify_password(req.password, getattr(master, "password_hash", None)):
+        record_login_failure(lock_key)
         if not getattr(master, "password_hash", None):
             raise HTTPException(
                 status_code=403,
                 detail="Пароль не задан. Попросите администратора сбросить пароль в админке.",
             )
-        raise HTTPException(status_code=401, detail="Неверный пароль")
+        raise HTTPException(status_code=401, detail="Неверный телефон или пароль")
 
+    clear_login_failures(lock_key)
     return _complete_login(db, master, phone_norm, request)
 
 
 @router.post("/set-new-password")
-@_rate_limit("10/minute")
+@_rate_limit("8/minute")
 def set_new_password(req: SetNewPasswordBody, request: Request, db: Session = Depends(get_db)):
     """Установка нового пароля после сброса администратором."""
+    guard_auth_form(request, website=req.website, form_started_at=req.form_started_at)
     try:
         phone_intl, phone_norm = _resolve_phone(req.phone_number)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid phone number")
 
-    _validate_password_strength(req.new_password)
+    pwd = validate_password_or_code(req.new_password, label="Пароль")
 
     master = _find_master_by_phone(db, phone_norm)
     if not master:
@@ -194,7 +218,7 @@ def set_new_password(req: SetNewPasswordBody, request: Request, db: Session = De
     if int(getattr(master, "is_password_reset", 0) or 0) != 1:
         raise HTTPException(status_code=403, detail="Сброс пароля не одобрен администратором")
 
-    master.password_hash = hash_password(req.new_password.strip())
+    master.password_hash = hash_password(pwd)
     master.is_password_reset = 0
     db.commit()
     db.refresh(master)
@@ -203,30 +227,38 @@ def set_new_password(req: SetNewPasswordBody, request: Request, db: Session = De
 
 
 @router.post("/register")
-@_rate_limit("10/minute")
+@_rate_limit("5/minute")
 def register_master(req: RegisterBody, request: Request, db: Session = Depends(get_db)):
     """Регистрация нового мастера: телефон + пароль."""
+    guard_auth_form(
+        request,
+        website=req.website,
+        form_started_at=req.form_started_at,
+        for_register=True,
+    )
     try:
         phone_intl, phone_norm = _resolve_phone(req.phone_number)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid phone number")
 
-    _validate_password_strength(req.password)
+    pwd = validate_password_or_code(req.password, label="Пароль")
+    safe_name = sanitize_display_name(req.name, fallback="Новый мастер")
 
     existing = _find_master_by_phone(db, phone_norm)
     if existing:
         raise HTTPException(status_code=409, detail="Пользователь с этим номером уже зарегистрирован")
 
     master = MasterDB(
-        name=(req.name or "").strip() or "Новый мастер",
+        name=safe_name,
         phone=phone_intl,
         phone_norm=phone_norm,
         role="user",
         categories_json="[]",
         services_json="[]",
         portfolio_json="[]",
-        password_hash=hash_password(req.password.strip()),
+        password_hash=hash_password(pwd),
         is_password_reset=0,
+        moderation_status="draft",
     )
     db.add(master)
     db.commit()
@@ -254,6 +286,7 @@ def _ensure_master(db: Session, phone_raw: str, phone_norm: str) -> MasterDB:
             categories_json="[]",
             services_json="[]",
             portfolio_json="[]",
+            moderation_status="draft",
         )
         db.add(master)
         db.commit()

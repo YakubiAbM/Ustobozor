@@ -21,6 +21,8 @@ class MyProjectsPage extends StatefulWidget {
 class _MyProjectsPageState extends State<MyProjectsPage> {
   List<ProjectModel> _projects = [];
   bool _loading = true;
+  /// null = all, false = in progress, true = completed
+  bool? _completedFilter;
 
   @override
   void initState() {
@@ -35,6 +37,13 @@ class _MyProjectsPageState extends State<MyProjectsPage> {
       _projects = projects;
       _loading = false;
     });
+  }
+
+  List<ProjectModel> get _filtered {
+    if (_completedFilter == null) return _projects;
+    return _projects
+        .where((p) => p.isCompleted == _completedFilter)
+        .toList();
   }
 
   @override
@@ -54,6 +63,7 @@ class _MyProjectsPageState extends State<MyProjectsPage> {
     );
 
     final debtProjects = _projects.where((p) => p.hasDebt).toList();
+    final filtered = _filtered;
 
     return Scaffold(
       appBar: AppBar(
@@ -88,15 +98,43 @@ class _MyProjectsPageState extends State<MyProjectsPage> {
                         onTap: () => _openDebtorsList(debtProjects),
                       ),
                     ],
+                    const SizedBox(height: 12),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _FilterChip(
+                            label: settings.t('project_filter_all'),
+                            selected: _completedFilter == null,
+                            onTap: () =>
+                                setState(() => _completedFilter = null),
+                          ),
+                          const SizedBox(width: 8),
+                          _FilterChip(
+                            label: settings.t('project_filter_active'),
+                            selected: _completedFilter == false,
+                            onTap: () =>
+                                setState(() => _completedFilter = false),
+                          ),
+                          const SizedBox(width: 8),
+                          _FilterChip(
+                            label: settings.t('project_filter_done'),
+                            selected: _completedFilter == true,
+                            onTap: () =>
+                                setState(() => _completedFilter = true),
+                          ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     Expanded(
-                      child: _projects.isEmpty
+                      child: filtered.isEmpty
                           ? _emptyState(settings)
                           : ListView.builder(
                               physics: const AlwaysScrollableScrollPhysics(),
-                              itemCount: _projects.length,
+                              itemCount: filtered.length,
                               itemBuilder: (context, index) {
-                                final project = _projects[index];
+                                final project = filtered[index];
                                 return ProjectCard(
                                   project: project,
                                   onTap: () => _openProjectDetails(project),
@@ -172,16 +210,13 @@ class _MyProjectsPageState extends State<MyProjectsPage> {
   }
 
   Future<void> _openProjectDetails(ProjectModel project) async {
-    final changed = await Navigator.push<bool>(
+    await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) => ProjectDetailsPage(projectId: project.id),
       ),
     );
-
-    if (changed == true) {
-      await _loadProjects();
-    }
+    await _loadProjects();
   }
 
   Future<void> _openDebtorsList(List<ProjectModel> debtProjects) async {
@@ -195,6 +230,32 @@ class _MyProjectsPageState extends State<MyProjectsPage> {
     if (updated == true) {
       await _loadProjects();
     }
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+      selectedColor: AppColors.accent.withValues(alpha: 0.2),
+      labelStyle: TextStyle(
+        fontWeight: FontWeight.w600,
+        color: selected ? AppColors.accent : null,
+      ),
+    );
   }
 }
 

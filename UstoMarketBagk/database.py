@@ -67,10 +67,17 @@ class MasterDB(Base):
     categories_json = Column(Text, default="[]")
     description = Column(String, default="")
     experience = Column(Integer, default=0)
+    city = Column(String, default="")  # город мастера (Душанбе, Худжанд, Истаравшан…)
     image = Column(String, default="")
     portfolio_json = Column(Text, default="[]")
     services_json = Column(Text, default="[]")
     rating = Column(Float, default=5.0)
+    reviews_count = Column(Integer, default=0, nullable=False)
+    # Публикация в каталог: draft | pending | approved | rejected
+    moderation_status = Column(String(16), default="approved", index=True)
+    moderation_note = Column(String(255), default="")
+    # Если анкета-дубликат: id канонического мастера (фото+заказы+отзывы)
+    merged_into_master_id = Column(Integer, nullable=True, index=True)
     # OTP: храним только хэш кода
     otp_code = Column(String, nullable=True)  # legacy
     otp_hash = Column(String(128), nullable=True)
@@ -213,7 +220,187 @@ class ProductStockDB(Base):
     updated_at = Column(Integer, default=0, nullable=False)
 
 
+class ServiceRequestDB(Base):
+    """Заявка на услугу мастера (биржа заказов). Не путать с shop OrderDB."""
+    __tablename__ = "service_requests"
+    id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
+    category = Column(String(128), nullable=False, default="", index=True)
+    title = Column(String(150), nullable=False)
+    description = Column(Text, default="")
+    address = Column(String(255), default="")
+    city = Column(String(128), default="")
+    budget = Column(Float, nullable=True)
+    client_name = Column(String(128), default="")
+    client_phone = Column(String(32), default="")
+    status = Column(String(32), default="open", index=True)  # open|in_progress|completed|cancelled
+    created_at = Column(String(32), default="")
+
+
+class ServiceRequestPhotoDB(Base):
+    __tablename__ = "service_request_photos"
+    id = Column(Integer, primary_key=True, index=True)
+    request_id = Column(Integer, ForeignKey("service_requests.id"), nullable=False, index=True)
+    image_url = Column(String, nullable=False)
+
+
+class ServiceRequestResponseDB(Base):
+    __tablename__ = "service_request_responses"
+    id = Column(Integer, primary_key=True, index=True)
+    request_id = Column(Integer, ForeignKey("service_requests.id"), nullable=False, index=True)
+    master_id = Column(Integer, ForeignKey("masters.id"), nullable=False, index=True)
+    proposed_price = Column(Float, nullable=True)
+    comment = Column(Text, default="")
+    created_at = Column(String(32), default="")
+
+
+# -----------------------------------------------------------------------------
+# Каталог фикс-услуг + заказы с комиссией (не путать с shop OrderDB / service_requests)
+# -----------------------------------------------------------------------------
+
+class ServiceCategoryDB(Base):
+    __tablename__ = "service_categories"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(128), nullable=False, unique=True, index=True)
+    is_active = Column(Integer, default=1, nullable=False)  # 1/0 for SQLite
+
+
+class ServiceCatalogDB(Base):
+    __tablename__ = "service_catalog"
+    id = Column(Integer, primary_key=True, index=True)
+    category_id = Column(Integer, ForeignKey("service_categories.id"), nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    price_client = Column(Float, nullable=False, default=0)
+    commission_fee = Column(Float, nullable=False, default=0)
+    is_active = Column(Integer, default=1, nullable=False, index=True)
+
+
+class MasterBalanceDB(Base):
+    __tablename__ = "master_balances"
+    id = Column(Integer, primary_key=True, index=True)
+    master_id = Column(Integer, ForeignKey("masters.id"), nullable=False, unique=True, index=True)
+    balance = Column(Float, nullable=False, default=0)
+
+
+class ServiceOrderDB(Base):
+    """Заказ из каталога услуг. Не путать с shop OrderDB."""
+    __tablename__ = "service_orders"
+    id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
+    service_id = Column(Integer, ForeignKey("service_catalog.id"), nullable=False, index=True)
+    master_id = Column(Integer, ForeignKey("masters.id"), nullable=True, index=True)
+    address = Column(Text, default="")  # текстовый ориентир (address_text)
+    comment = Column(Text, default="")
+    scheduled_date = Column(String(32), default="")  # YYYY-MM-DD
+    scheduled_time = Column(String(16), default="")  # HH:MM
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    status = Column(String(32), default="NEW", index=True)  # NEW|IN_PROGRESS|COMPLETED|CANCELLED
+    price_client = Column(Float, nullable=False, default=0)  # snapshot
+    commission_fee = Column(Float, nullable=False, default=0)  # snapshot (комиссия пока не списывается)
+    client_name = Column(String(128), default="")
+    client_phone = Column(String(32), default="")
+    created_at = Column(String(32), default="")
+
+
+class ServiceOrderPhotoDB(Base):
+    __tablename__ = "service_order_photos"
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("service_orders.id"), nullable=False, index=True)
+    image_url = Column(String, nullable=False)
+
+
+class ServiceOrderReviewDB(Base):
+    """Отзыв клиента по выполненному service_order (1 заказ = 1 отзыв)."""
+    __tablename__ = "service_order_reviews"
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("service_orders.id"), nullable=False, unique=True, index=True)
+    master_id = Column(Integer, ForeignKey("masters.id"), nullable=False, index=True)
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
+    rating = Column(Integer, nullable=False)  # 1..5
+    comment = Column(Text, default="")
+    created_at = Column(String(32), default="")
+
+
+class ServiceOrderReviewPhotoDB(Base):
+    __tablename__ = "service_order_review_photos"
+    id = Column(Integer, primary_key=True, index=True)
+    review_id = Column(Integer, ForeignKey("service_order_reviews.id"), nullable=False, index=True)
+    photo_url = Column(String, nullable=False)
+
+
+class BalanceTransactionDB(Base):
+    __tablename__ = "balance_transactions"
+    id = Column(Integer, primary_key=True, index=True)
+    master_id = Column(Integer, ForeignKey("masters.id"), nullable=False, index=True)
+    amount = Column(Float, nullable=False)
+    type = Column(String(32), nullable=False, index=True)  # COMMISSION_DEBIT | BALANCE_TOPUP
+    order_id = Column(Integer, ForeignKey("service_orders.id"), nullable=True, index=True)
+    note = Column(String(255), default="")
+    created_at = Column(String(32), default="")
+
+
 Base.metadata.create_all(bind=engine)
+
+
+def ensure_service_orders_geo_columns() -> None:
+    """SQLite/Postgres: добавить geo-колонки к существующей таблице service_orders."""
+    from sqlalchemy import inspect, text
+
+    insp = inspect(engine)
+    if "service_orders" not in insp.get_table_names():
+        return
+    existing = {c["name"] for c in insp.get_columns("service_orders")}
+    alters = []
+    if "scheduled_date" not in existing:
+        alters.append("ALTER TABLE service_orders ADD COLUMN scheduled_date VARCHAR(32) DEFAULT ''")
+    if "scheduled_time" not in existing:
+        alters.append("ALTER TABLE service_orders ADD COLUMN scheduled_time VARCHAR(16) DEFAULT ''")
+    if "latitude" not in existing:
+        alters.append("ALTER TABLE service_orders ADD COLUMN latitude FLOAT")
+    if "longitude" not in existing:
+        alters.append("ALTER TABLE service_orders ADD COLUMN longitude FLOAT")
+    if not alters:
+        return
+    with engine.begin() as conn:
+        for sql in alters:
+            conn.execute(text(sql))
+
+
+def ensure_master_reviews_count_column() -> None:
+    from sqlalchemy import inspect, text
+
+    insp = inspect(engine)
+    if "masters" not in insp.get_table_names():
+        return
+    existing = {c["name"] for c in insp.get_columns("masters")}
+    if "reviews_count" in existing:
+        return
+    with engine.begin() as conn:
+        conn.execute(
+            text("ALTER TABLE masters ADD COLUMN reviews_count INTEGER NOT NULL DEFAULT 0")
+        )
+
+
+def ensure_master_merged_into_column() -> None:
+    """Pointer to canonical master when a duplicate listing was merged."""
+    from sqlalchemy import inspect, text
+
+    insp = inspect(engine)
+    if "masters" not in insp.get_table_names():
+        return
+    existing = {c["name"] for c in insp.get_columns("masters")}
+    if "merged_into_master_id" in existing:
+        return
+    with engine.begin() as conn:
+        conn.execute(
+            text("ALTER TABLE masters ADD COLUMN merged_into_master_id INTEGER")
+        )
+
+
+ensure_service_orders_geo_columns()
+ensure_master_reviews_count_column()
+ensure_master_merged_into_column()
 
 
 # -----------------------------------------------------------------------------
@@ -248,8 +435,10 @@ class MasterResponse(BaseModel):
     phone: str
     description: str
     experience: int
+    city: str = ""
     image: Optional[str] = None
     rating: float
+    reviews_count: int = 0
     categories: List[str] = []
     portfolio: List[str] = []
     services: List[dict] = []

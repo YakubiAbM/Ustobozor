@@ -4,8 +4,11 @@ import 'package:provider/provider.dart';
 
 import '../providers/navigation_provider.dart';
 import '../providers/master_auth_provider.dart';
+import '../providers/app_mode_provider.dart';
 import '../services/push_notification_service.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../features/projects/pages/my_projects_page.dart';
+import '../features/service_requests/pages/service_requests_feed_page.dart';
 import 'brand_products_screen.dart';
 import 'cart_screen.dart';
 import 'home_screen.dart';
@@ -36,11 +39,15 @@ class MainLayout extends StatelessWidget {
     }
 
     final nav = Provider.of<NavigationProvider>(context);
+    final mode = Provider.of<AppModeProvider>(context);
+    final master = Provider.of<MasterAuthProvider>(context);
+    final masterUi = mode.isMasterMode && master.isLoggedIn;
+
     final screens = [
       const HomeScreen(),
-      const MastersScreen(),
+      masterUi ? const ServiceRequestsFeedPage() : const MastersScreen(),
       const PublishWorkScreen(),
-      const MaterialsScreen(),
+      masterUi ? const MyProjectsPage() : const MaterialsScreen(),
       const CartScreen(),
       const ProfileScreen(),
     ];

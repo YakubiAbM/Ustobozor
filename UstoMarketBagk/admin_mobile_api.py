@@ -22,19 +22,31 @@ from auth import (
 )
 from database import (
     AdminDB,
+    BalanceTransactionDB,
     DeviceTokenDB,
+    MasterBalanceDB,
     MasterDB,
     MasterNotificationDB,
     OrderDB,
     ProductDB,
     ProductStockDB,
     RefreshTokenDB,
+    ServiceCatalogDB,
+    ServiceCategoryDB,
+    ServiceOrderDB,
     TransactionDB,
     get_db,
 )
 from order_actions import VALID_STATUSES, apply_order_status_change
 from search_engine import refresh_products_cache
 from config import MASTER_POINTS_ENABLED
+from service_catalog_api import (
+    _enrich_order,
+    _now as _svc_now,
+    _service_out,
+    ensure_master_balance,
+    seed_service_catalog_if_empty,
+)
 
 router = APIRouter(prefix="/admin/api", tags=["admin-mobile"])
 
@@ -95,9 +107,17 @@ class AdminMasterOut(BaseModel):
     points: int = 0
     debt: float = 0
     experience: int = 0
-    rating: float = 5.0
+    rating: float = 0.0
+    reviews_count: int = 0
+    city: str = ""
     categories: List[str] = []
     image: Optional[str] = None
+    moderation_status: str = "approved"
+    moderation_note: str = ""
+
+
+class MasterModerationBody(BaseModel):
+    note: str = ""
 
 
 class AdminTransactionOut(BaseModel):
@@ -202,6 +222,7 @@ class MasterSaveBody(BaseModel):
     phone: str = Field(..., min_length=9)
     description: str = ""
     experience: int = 0
+    city: str = ""
     categories: List[str] = []
     new_category: Optional[str] = None
     services: List[MasterServiceIn] = []
@@ -286,7 +307,18 @@ def _order_out(o: OrderDB) -> AdminOrderOut:
     )
 
 
-def _master_out(m: MasterDB) -> AdminMasterOut:
+def _master_out(m: MasterDB, db: Session = None) -> AdminMasterOut:
+    cnt, avg = 0, 0.0
+    if db is not None:
+        try:
+            from service_catalog_api import master_review_stats
+            cnt, avg = master_review_stats(db, m.id)
+        except Exception:
+            cnt = int(getattr(m, "reviews_count", 0) or 0)
+            avg = float(m.rating or 0) if cnt else 0.0
+    else:
+        cnt = int(getattr(m, "reviews_count", 0) or 0)
+        avg = float(m.rating or 0) if cnt else 0.0
     return AdminMasterOut(
         id=m.id,
         name=m.name,
@@ -294,9 +326,13 @@ def _master_out(m: MasterDB) -> AdminMasterOut:
         points=int(m.points or 0),
         debt=float(getattr(m, "debt", 0) or 0),
         experience=int(m.experience or 0),
-        rating=float(m.rating or 5),
+        rating=avg if cnt else 0.0,
+        reviews_count=cnt,
+        city=(getattr(m, "city", None) or ""),
         categories=_parse_cats(m.categories_json),
         image=m.image,
+        moderation_status=getattr(m, "moderation_status", None) or "approved",
+        moderation_note=getattr(m, "moderation_note", None) or "",
     )
 
 
@@ -395,7 +431,7 @@ def _master_detail_out(db: Session, master: MasterDB) -> MasterDetailOut:
             master_orders.append(out)
             if (o.status or "") == "completed":
                 total_spent += float(o.total_price or 0)
-    base = _master_out(master)
+    base = _master_out(master, db)
     return MasterDetailOut(
         **base.model_dump(),
         description=getattr(master, "description", None),
@@ -525,17 +561,61 @@ def admin_api_order_invoice(
 @router.get("/masters", response_model=List[AdminMasterOut])
 def admin_api_masters(
     search: Optional[str] = None,
+    moderation_status: Optional[str] = None,
     db: Session = Depends(get_db),
     _user=Depends(require_admin_permission("masters")),
 ):
     q = db.query(MasterDB).order_by(MasterDB.points.desc(), MasterDB.id.desc())
+    if moderation_status and moderation_status.strip():
+        status = moderation_status.strip().lower()
+        if status == "pending":
+            # pending сверху списка модерации
+            q = db.query(MasterDB).filter(MasterDB.moderation_status == "pending").order_by(
+                MasterDB.id.desc()
+            )
+        else:
+            q = q.filter(MasterDB.moderation_status == status)
     if search and search.strip():
         like = f"%{search.strip()}%"
         q = q.filter(
             (MasterDB.name.ilike(like))
             | (MasterDB.phone.ilike(like))
         )
-    return [_master_out(m) for m in q.limit(100).all()]
+    return [_master_out(m, db) for m in q.limit(100).all()]
+
+
+@router.post("/masters/{master_id}/approve", response_model=MasterDetailOut)
+def admin_api_approve_master(
+    master_id: int,
+    body: MasterModerationBody = MasterModerationBody(),
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin_permission("masters")),
+):
+    master = db.query(MasterDB).filter(MasterDB.id == master_id).first()
+    if not master:
+        raise HTTPException(status_code=404, detail="Мастер не найден")
+    master.moderation_status = "approved"
+    master.moderation_note = (body.note or "").strip()
+    db.commit()
+    db.refresh(master)
+    return _master_detail_out(db, master)
+
+
+@router.post("/masters/{master_id}/reject", response_model=MasterDetailOut)
+def admin_api_reject_master(
+    master_id: int,
+    body: MasterModerationBody = MasterModerationBody(),
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin_permission("masters")),
+):
+    master = db.query(MasterDB).filter(MasterDB.id == master_id).first()
+    if not master:
+        raise HTTPException(status_code=404, detail="Мастер не найден")
+    master.moderation_status = "rejected"
+    master.moderation_note = (body.note or "").strip() or "Отклонено модератором"
+    db.commit()
+    db.refresh(master)
+    return _master_detail_out(db, master)
 
 
 @router.post("/masters/{master_id}/reset-password")
@@ -744,12 +824,14 @@ def admin_api_create_master(
         phone_norm=phone_norm,
         description=body.description or "",
         experience=int(body.experience or 0),
+        city=(body.city or "").strip(),
         categories_json=json.dumps(final_cats, ensure_ascii=False),
         services_json=json.dumps(services_list, ensure_ascii=False),
         portfolio_json="[]",
         image="",
         barcode="",
         is_password_reset=1,
+        moderation_status="approved",
     )
     db.add(master)
     db.commit()
@@ -786,6 +868,7 @@ def admin_api_update_master(
     master.phone_norm = phone_norm
     master.description = body.description or ""
     master.experience = int(body.experience or 0)
+    master.city = (body.city or "").strip()
     master.categories_json = json.dumps(final_cats, ensure_ascii=False)
     master.services_json = json.dumps(services_list, ensure_ascii=False)
     db.commit()
@@ -1082,3 +1165,231 @@ def admin_api_points_spend(
         master_name=master.name,
         points=int(master.points or 0),
     )
+
+
+# =============================================================================
+# Каталог услуг / service_orders / балансы мастеров
+# =============================================================================
+
+
+class ServiceCatalogUpsert(BaseModel):
+    category_id: int
+    title: str = Field(..., min_length=2, max_length=255)
+    price_client: float = Field(..., ge=0)
+    commission_fee: float = Field(..., ge=0)
+    is_active: bool = True
+
+
+class ServiceOrderAdminPatch(BaseModel):
+    status: Optional[str] = None
+    master_id: Optional[int] = None
+
+
+class BalanceTopupBody(BaseModel):
+    master_id: int
+    amount: float = Field(..., gt=0)
+    note: str = ""
+
+
+@router.get("/service-categories")
+def admin_service_categories(
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin_permission("masters")),
+):
+    seed_service_catalog_if_empty(db)
+    rows = db.query(ServiceCategoryDB).order_by(ServiceCategoryDB.name.asc()).all()
+    return [
+        {"id": c.id, "name": c.name, "is_active": bool(c.is_active)}
+        for c in rows
+    ]
+
+
+@router.get("/service-catalog")
+def admin_list_service_catalog(
+    q: Optional[str] = None,
+    category_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin_permission("masters")),
+):
+    seed_service_catalog_if_empty(db)
+    query = db.query(ServiceCatalogDB)
+    if category_id:
+        query = query.filter(ServiceCatalogDB.category_id == category_id)
+    if q and q.strip():
+        from sqlalchemy import func
+        query = query.filter(
+            func.lower(ServiceCatalogDB.title).like(f"%{q.strip().lower()}%")
+        )
+    rows = query.order_by(ServiceCatalogDB.id.desc()).all()
+    cats = {c.id: c.name for c in db.query(ServiceCategoryDB).all()}
+    return [_service_out(s, cats.get(s.category_id, "")) for s in rows]
+
+
+@router.post("/service-catalog")
+def admin_create_service(
+    body: ServiceCatalogUpsert,
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin_permission("masters")),
+):
+    cat = db.query(ServiceCategoryDB).filter(ServiceCategoryDB.id == body.category_id).first()
+    if not cat:
+        raise HTTPException(status_code=400, detail="Категория не найдена")
+    row = ServiceCatalogDB(
+        category_id=body.category_id,
+        title=body.title.strip(),
+        price_client=float(body.price_client),
+        commission_fee=float(body.commission_fee),
+        is_active=1 if body.is_active else 0,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return _service_out(row, cat.name)
+
+
+@router.put("/service-catalog/{service_id}")
+def admin_update_service(
+    service_id: int,
+    body: ServiceCatalogUpsert,
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin_permission("masters")),
+):
+    row = db.query(ServiceCatalogDB).filter(ServiceCatalogDB.id == service_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Услуга не найдена")
+    cat = db.query(ServiceCategoryDB).filter(ServiceCategoryDB.id == body.category_id).first()
+    if not cat:
+        raise HTTPException(status_code=400, detail="Категория не найдена")
+    row.category_id = body.category_id
+    row.title = body.title.strip()
+    row.price_client = float(body.price_client)
+    row.commission_fee = float(body.commission_fee)
+    row.is_active = 1 if body.is_active else 0
+    db.commit()
+    db.refresh(row)
+    return _service_out(row, cat.name)
+
+
+@router.delete("/service-catalog/{service_id}")
+def admin_delete_service(
+    service_id: int,
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin_permission("masters")),
+):
+    row = db.query(ServiceCatalogDB).filter(ServiceCatalogDB.id == service_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Услуга не найдена")
+    row.is_active = 0
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/service-orders")
+def admin_list_service_orders(
+    status: Optional[str] = None,
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin_permission("masters")),
+):
+    query = db.query(ServiceOrderDB)
+    if status:
+        query = query.filter(ServiceOrderDB.status == status.upper())
+    rows = query.order_by(ServiceOrderDB.id.desc()).limit(200).all()
+    out = []
+    for o in rows:
+        item = _enrich_order(db, o, include_contact=True, include_location=True)
+        master_name = ""
+        if o.master_id:
+            m = db.query(MasterDB).filter(MasterDB.id == o.master_id).first()
+            master_name = m.name if m else ""
+        item["master_name"] = master_name
+        out.append(item)
+    return out
+
+
+@router.patch("/service-orders/{order_id}")
+def admin_patch_service_order(
+    order_id: int,
+    body: ServiceOrderAdminPatch,
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin_permission("masters")),
+):
+    o = db.query(ServiceOrderDB).filter(ServiceOrderDB.id == order_id).first()
+    if not o:
+        raise HTTPException(status_code=404, detail="Заказ не найден")
+    if body.status:
+        st = body.status.upper()
+        if st not in {"NEW", "IN_PROGRESS", "COMPLETED", "CANCELLED"}:
+            raise HTTPException(status_code=400, detail="Неверный статус")
+        o.status = st
+        if st == "NEW":
+            o.master_id = None
+        if st == "CANCELLED":
+            pass
+    if body.master_id is not None:
+        if body.master_id == 0:
+            o.master_id = None
+            if o.status == "IN_PROGRESS":
+                o.status = "NEW"
+        else:
+            m = db.query(MasterDB).filter(MasterDB.id == body.master_id).first()
+            if not m:
+                raise HTTPException(status_code=400, detail="Мастер не найден")
+            o.master_id = m.id
+            if o.status == "NEW":
+                o.status = "IN_PROGRESS"
+    db.commit()
+    item = _enrich_order(db, o, include_contact=True, include_location=True)
+    return item
+
+
+@router.get("/master-balances")
+def admin_master_balances(
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin_permission("cashier")),
+):
+    masters = db.query(MasterDB).order_by(MasterDB.id.desc()).limit(500).all()
+    out = []
+    for m in masters:
+        bal = db.query(MasterBalanceDB).filter(MasterBalanceDB.master_id == m.id).first()
+        out.append(
+            {
+                "master_id": m.id,
+                "name": m.name or "",
+                "phone": m.phone or "",
+                "balance": float(bal.balance) if bal else None,
+                "has_wallet": bal is not None,
+            }
+        )
+    return out
+
+
+@router.post("/master-balances/topup")
+def admin_master_balance_topup(
+    body: BalanceTopupBody,
+    db: Session = Depends(get_db),
+    _user=Depends(require_admin_permission("cashier")),
+):
+    master = db.query(MasterDB).filter(MasterDB.id == body.master_id).first()
+    if not master:
+        raise HTTPException(status_code=404, detail="Мастер не найден")
+    bal = ensure_master_balance(db, master.id)
+    amount = float(body.amount)
+    bal.balance = float(bal.balance or 0) + amount
+    db.add(
+        BalanceTransactionDB(
+            master_id=master.id,
+            amount=amount,
+            type="BALANCE_TOPUP",
+            order_id=None,
+            note=(body.note or "").strip() or "Пополнение администратором",
+            created_at=_svc_now(),
+        )
+    )
+    db.commit()
+    db.refresh(bal)
+    return {
+        "ok": True,
+        "master_id": master.id,
+        "name": master.name,
+        "balance": float(bal.balance or 0),
+    }

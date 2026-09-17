@@ -1,6 +1,6 @@
 # Ustobozor
 
-Монорепозиторий платформы **Ustobozor** — интернет-магазин строительных материалов и сервис мастеров (Истаравшан, TJ).
+Монорепозиторий платформы **Ustobozor** — интернет-магазин строительных материалов и сервис мастеров по всему Таджикистану.
 
 ## Структура
 
@@ -45,11 +45,20 @@ flutter pub get
 flutter run
 ```
 
-## Домен
+## Домен / VPS
 
 - Prod: `https://ustobozor.tj`
-- API и PWA обслуживаются backend-ом на порту `:8000` (nginx на VPS)
+- VPS: `92.119.185.114`
+- API и PWA: backend на `:8000` за nginx
 
 ## Секреты
 
-Не коммитить: `.env`, Firebase service account, deploy-ключи. Использовать `.env.example` как шаблон.
+Не коммитить: `.env`, `.env.production`, Firebase service account, deploy-ключи.
+
+```bash
+cd UstoMarketBagk
+python3 scripts/generate_prod_env.py   # пишет .env.production (gitignore)
+# на сервере: скопировать как .env
+```
+
+Шаблон без паролей: `.env.example`.

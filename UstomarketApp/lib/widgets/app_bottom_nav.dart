@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../constants.dart';
-import '../providers/cart_provider.dart';
+import '../providers/app_mode_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/settings_provider.dart';
 
-/// Нижняя навигация: 6 вкладок + центральная кнопка «+».
+/// Нижняя навигация: Главная, Мастера/Лента, +, Материалы, Профиль.
 class AppBottomNavBar extends StatelessWidget {
   const AppBottomNavBar({
     super.key,
@@ -20,7 +20,11 @@ class AppBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = Provider.of<SettingsProvider>(context);
+    final mode = Provider.of<AppModeProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final materialsSelected =
+        currentIndex == NavigationProvider.tabMaterials ||
+        currentIndex == NavigationProvider.tabCart;
 
     return Container(
       decoration: BoxDecoration(
@@ -41,9 +45,15 @@ class AppBottomNavBar extends StatelessWidget {
                 onTap: () => onTap(NavigationProvider.tabHome),
               ),
               _NavItem(
-                icon: Icons.handyman_outlined,
-                activeIcon: Icons.handyman,
-                label: settings.t('masters'),
+                icon: mode.isMasterMode
+                    ? Icons.dynamic_feed_outlined
+                    : Icons.handyman_outlined,
+                activeIcon: mode.isMasterMode
+                    ? Icons.dynamic_feed
+                    : Icons.handyman,
+                label: mode.isMasterMode
+                    ? settings.t('sr_feed_short')
+                    : settings.t('masters'),
                 selected: currentIndex == NavigationProvider.tabMasters,
                 onTap: () => onTap(NavigationProvider.tabMasters),
               ),
@@ -52,19 +62,19 @@ class AppBottomNavBar extends StatelessWidget {
                 onTap: () => onTap(NavigationProvider.tabPublish),
               ),
               _NavItem(
-                icon: Icons.storefront_outlined,
-                activeIcon: Icons.storefront,
-                label: settings.t('materials'),
-                selected: currentIndex == NavigationProvider.tabMaterials,
+                icon: mode.isMasterMode
+                    ? Icons.folder_outlined
+                    : Icons.storefront_outlined,
+                activeIcon: mode.isMasterMode
+                    ? Icons.folder
+                    : Icons.storefront,
+                label: mode.isMasterMode
+                    ? settings.t('sr_crm_short')
+                    : settings.t('materials'),
+                selected: materialsSelected ||
+                    (mode.isMasterMode &&
+                        currentIndex == NavigationProvider.tabMaterials),
                 onTap: () => onTap(NavigationProvider.tabMaterials),
-              ),
-              _NavItem(
-                icon: Icons.shopping_cart_outlined,
-                activeIcon: Icons.shopping_cart,
-                label: settings.t('cart'),
-                selected: currentIndex == NavigationProvider.tabCart,
-                badge: context.watch<CartProvider>().itemCount,
-                onTap: () => onTap(NavigationProvider.tabCart),
               ),
               _NavItem(
                 icon: Icons.person_outline,

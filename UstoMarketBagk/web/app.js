@@ -1,6 +1,8 @@
 const API = ""; // same origin: /products, /masters, /orders
 /** Программа баллов мастеров (временно отключена). */
 const MASTER_POINTS_ENABLED = false;
+/** QR / штрих-код мастера в профиле (временно отключён). */
+const MASTER_BARCODE_ENABLED = false;
 function fullUrl(path) {
   if (!path || typeof path !== "string") return "";
   path = path.trim();
@@ -55,6 +57,7 @@ const state = {
   qMaterialsDraft: "",
   qProductsDraft: "",
   qMastersDraft: "",
+  searchCity: "",
 
   // materials navigation (categories -> subcategories -> items)
   materialsStep: "categories", // categories | subcategories | items
@@ -163,7 +166,7 @@ const PRODUCT_CALC_OVERRIDES = {
   mashad_super: { consumption: 0.3, packaging: 3, laborPrice: 15, unitType: "вед.", kind: "enamel" },
 };
 
-/** Услуги мастеров в Истаравшане: ставка за 1 м² стен. */
+/** Услуги мастеров в Таджикистане: ставка за 1 м² стен. */
 const CALC_SERVICES = [
   {
     id: "painting",
@@ -262,14 +265,48 @@ function clearSearchForScreen(screen) {
   }
 }
 
-function applySearchQuery() {
+function normalizeCityName(s) {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/^г\.\s*/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getMasterCities() {
+  var set = {};
+  (state.masters || []).forEach(function (m) {
+    var c = (m.city || "").trim();
+    if (c) set[c] = true;
+  });
+  return Object.keys(set).sort(function (a, b) {
+    return a.localeCompare(b, "ru");
+  });
+}
+
+function masterMatchesCity(m, cityFilter) {
+  var f = (cityFilter || "").trim();
+  if (!f) return true;
+  var c = (m.city || "").trim();
+  if (!c) return false;
+  var nf = normalizeCityName(f);
+  var nc = normalizeCityName(c);
+  return nc === nf || nc.indexOf(nf) !== -1 || nf.indexOf(nc) !== -1;
+}
+
+function applySearchQuery(opts) {
+  opts = opts || {};
+  const keepFocus = !!opts.keepFocus;
   const inp = document.querySelector('input[data-act="q"]');
   const raw = inp ? inp.value : searchDraftValue();
   const v = (raw || "").trim();
+  const selStart = inp && typeof inp.selectionStart === "number" ? inp.selectionStart : null;
   setSearchDraftValue(raw || "");
 
   if (state.screen === "home") {
     state.qHome = v;
+    state.qMasters = v;
+    state.qMastersDraft = raw || "";
     render();
   } else if (state.screen === "materials") {
     state.qMaterials = v;
@@ -287,10 +324,25 @@ function applySearchQuery() {
     }
   } else if (state.screen === "masters") {
     state.qMasters = v;
+    state.qHome = v;
+    state.qHomeDraft = raw || "";
+    render();
+  } else {
     render();
   }
 
-  if (inp) inp.blur();
+  if (keepFocus) {
+    requestAnimationFrame(function () {
+      var again = document.querySelector('input[data-act="q"]');
+      if (!again) return;
+      again.focus();
+      try {
+        if (selStart != null) again.setSelectionRange(selStart, selStart);
+      } catch (_) {}
+    });
+  } else if (inp) {
+    try { inp.blur(); } catch (_) {}
+  }
 }
 
 function syncSearchClearButton(inputEl) {
@@ -695,8 +747,26 @@ function productMatches(p, q) {
   return hay.includes(q);
 }
 function masterMatches(m, q) {
-  const hay = `${m.name || ""} ${m.category || ""} ${(m.categories || "").toString()} ${m.description || ""}`.toLowerCase();
-  return hay.includes(q);
+  q = String(q || "").toLowerCase().trim();
+  if (!q) return true;
+  const services = (m.services || [])
+    .map(function (s) { return (s && s.name) || ""; })
+    .join(" ");
+  const cats = Array.isArray(m.categories)
+    ? m.categories.join(" ")
+    : String(m.categories || "");
+  const hay = [
+    m.name || "",
+    m.category || "",
+    cats,
+    m.description || "",
+    m.city || "",
+    m.phone || "",
+    services,
+  ]
+    .join(" ")
+    .toLowerCase();
+  return hay.indexOf(q) !== -1;
 }
 
 function uniq(arr) {
@@ -1272,10 +1342,12 @@ async function submitOrder() {
 
 /* ===== UI PARTS ===== */
 function tab(id, iconName, label) {
-  const active = state.screen === id ? "active" : "";
+  // Корзина открывается со стройматериалов — подсвечиваем вкладку «Материалы».
+  const isActive =
+    state.screen === id || (id === "materials" && state.screen === "cart");
   const ic = typeof icon === "function" ? icon(iconName, "tab-ico") : iconName;
   return `
-    <button class="tab ${active}" data-act="nav" data-screen="${id}">
+    <button class="tab ${isActive ? "active" : ""}" data-act="nav" data-screen="${id}">
       <div class="i">${ic}</div>
       <div>${label}</div>
     </button>
@@ -1292,13 +1364,11 @@ function tabPlus(id) {
 }
 
 function renderBottomNav() {
-  const count = cartCount();
   return `
     ${tab("home", "home", "Главная")}
     ${tab("masters", "users", "Мастера")}
     ${tabPlus("publish")}
     ${tab("materials", "box", "Материалы")}
-    ${tab("cart", "cart", count ? `Корзина ${count}` : "Корзина")}
     ${tab("profile", "user", "Профиль")}
   `;
 }
@@ -1414,6 +1484,8 @@ function renderSearchBar(variant) {
   const show = ["home", "masters", "materials", "products"].includes(state.screen);
   if (!show) return "";
 
+  if (state.searchCity == null) state.searchCity = "";
+
   const v =
     state.screen === "home"
       ? state.qHomeDraft
@@ -1424,7 +1496,7 @@ function renderSearchBar(variant) {
       : state.qMastersDraft;
 
   let placeholder = "Поиск...";
-  if (state.screen === "home") placeholder = "Поиск мастера (имя, профессия)...";
+  if (state.screen === "home") placeholder = "Мастер, профессия, город…";
   if (state.screen === "materials") placeholder = "Поиск товаров…";
   if (state.screen === "products") {
     if (state.materialsStep === "categories") placeholder = "Поиск категорий или товаров…";
@@ -1433,15 +1505,33 @@ function renderSearchBar(variant) {
   }
   if (state.screen === "masters") {
     if (state.mastersStep === "categories") placeholder = "Поиск категории…";
-    if (state.mastersStep === "list") placeholder = "Поиск мастера (имя, профессия)...";
+    if (state.mastersStep === "list") placeholder = "Мастер, профессия, город…";
   }
 
   const hasText = !!(v || "").trim();
+  const showCity =
+    state.screen === "home" || state.screen === "masters";
+  const cities = getMasterCities();
+  const citySelect = showCity
+    ? `<select class="search-city" data-act="search-city" aria-label="Город" title="Фильтр по городу">
+        <option value="">Все города</option>
+        ${cities
+          .map(function (c) {
+            return `<option value="${escapeHtml(c)}"${
+              state.searchCity === c ? " selected" : ""
+            }>${escapeHtml(c)}</option>`;
+          })
+          .join("")}
+      </select>`
+    : "";
 
   return `
-    <form class="search${variant === "desk" ? " search--desk" : ""}" data-search-form autocomplete="off" action="#" onsubmit="return false">
+    <form class="search${variant === "desk" ? " search--desk" : ""}${
+      showCity ? " search--with-city" : ""
+    }" data-search-form autocomplete="off" action="#" onsubmit="return false">
       <div class="icon">${icon("search", "search-ico", 18)}</div>
       <input type="search" enterkeyhint="search" value="${escapeHtml(v)}" data-act="q" placeholder="${placeholder}" autocomplete="off">
+      ${citySelect}
       <button type="button" class="search-clear${hasText ? "" : " hidden"}" data-act="q-clear" aria-label="Очистить">${icon("close", "", 16)}</button>
       <button type="submit" class="search-submit" data-act="q-submit" aria-label="Искать">${icon("search", "", 18)}</button>
     </form>
@@ -1481,7 +1571,19 @@ function renderHeader() {
     return `<div class="home-header-desk desk-only"><div class="brand-row"><div class="brand">Ustomarket</div></div>${renderSearchBar()}</div>`;
   }
   if (s === "materials") {
-    return `<div class="brand-row"><div class="brand">Стройматериалы</div></div>${renderSearchBar()}`;
+    const count = cartCount();
+    return `
+      <div class="brand-row">
+        <div class="brand">Стройматериалы</div>
+      </div>
+      <div class="materials-search-row">
+        ${renderSearchBar()}
+        <button type="button" class="materials-cart-btn" data-act="nav" data-screen="cart" aria-label="Корзина">
+          <span class="materials-cart-ico">${icon("cart", "", 22)}${count ? `<span class="materials-cart-badge">${count}</span>` : ""}</span>
+          <span class="materials-cart-label">Корзина</span>
+        </button>
+      </div>
+    `;
   }
   if (s === "publish") {
     return `<div class="brand-row"><div class="brand">Публикация</div></div>`;
@@ -2237,6 +2339,7 @@ function renderMasters() {
   const cat = state.selectedMasterCategory || "ВСЕ МАСТЕРА";
   let list = state.masters.filter(m => masterHasCategory(m, cat));
   if (q) list = list.filter(m => masterMatches(m, q));
+  if (state.searchCity) list = list.filter(m => masterMatchesCity(m, state.searchCity));
 
   return `
     <div class="mat-topbar">
@@ -2834,10 +2937,12 @@ function renderProfile() {
           ${isMasterUser() ? `
           <div class="profile-card">
             <div class="profile-master-badge">✓ Вы вошли</div>
+            ${MASTER_BARCODE_ENABLED ? `
             <div class="profile-barcode-block">
               <div class="profile-barcode-label">Код мастера (QR)</div>
               ${renderMasterBarcode(me)}
             </div>
+            ` : ""}
             ${MASTER_POINTS_ENABLED ? `
             <button class="profile-balance-btn" type="button">
               <span class="profile-balance-icon">◆</span>
@@ -3155,7 +3260,7 @@ function render() {
           ${renderScreen()}
         </div>
 
-        <div class="tabs bottom-navigation tabs--six" aria-label="Основное меню">
+        <div class="tabs bottom-navigation tabs--five" aria-label="Основное меню">
           ${renderBottomNav()}
         </div>
       </div>
@@ -3618,7 +3723,11 @@ document.addEventListener("click", (e) => {
     state.selectedMasterCategory = t.getAttribute("data-cat") || "ВСЕ МАСТЕРА";
     state.mastersStep = "list";
     clearSearchForScreen("masters");
-    render();
+    if (state.screen !== "masters") {
+      setScreen("masters");
+    } else {
+      render();
+    }
     return;
   }
 
@@ -3731,16 +3840,29 @@ document.addEventListener("change", (e) => {
   if (t.getAttribute("data-act") === "calc-product" || t.id === "calc-product-select") {
     state.calc.productId = t.value || null;
     render();
+    return;
+  }
+  if (t.getAttribute("data-act") === "search-city") {
+    state.searchCity = t.value || "";
+    if (state.screen === "home" || state.screen === "masters") {
+      applySearchQuery({ keepFocus: false });
+    } else {
+      render();
+    }
   }
 });
 
 document.addEventListener("input", (e) => {
   const t = e.target;
 
-  // search
+  // search — живой поиск с debounce
   if (t && t.getAttribute && t.getAttribute("data-act") === "q") {
     setSearchDraftValue(t.value || "");
     syncSearchClearButton(t);
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(function () {
+      applySearchQuery({ keepFocus: true });
+    }, 280);
     return;
   }
 

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../constants.dart';
 import '../models/product.dart';
 import '../widgets/product_grid.dart';
+import '../providers/cart_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../repositories/product_repository.dart';
@@ -391,49 +392,109 @@ class _HomeHeader extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          TextField(
-            controller: searchController,
-            focusNode: searchFocusNode,
-            onChanged: onSearchChanged,
-            onSubmitted: (_) => searchFocusNode.unfocus(),
-            style: TextStyle(
-              color: theme.colorScheme.onSurface,
-              fontSize: 15,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Поиск...',
-              hintStyle: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 15,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: searchController,
+                  focusNode: searchFocusNode,
+                  onChanged: onSearchChanged,
+                  onSubmitted: (_) => searchFocusNode.unfocus(),
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                    fontSize: 15,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Поиск...',
+                    hintStyle: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 15,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.search,
+                      color: AppColors.textSecondary,
+                      size: 22,
+                    ),
+                    suffixIcon: isSearching
+                        ? IconButton(
+                            icon: const Icon(
+                              Icons.close,
+                              color: AppColors.textSecondary,
+                              size: 20,
+                            ),
+                            onPressed: onClearSearch,
+                          )
+                        : null,
+                    filled: true,
+                    fillColor:
+                        isDark ? AppColors.inputBg : AppColors.inputBgLight,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius:
+                          BorderRadius.circular(AppLayout.cardBorderRadius),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
               ),
-              prefixIcon: const Icon(
-                Icons.search,
-                color: AppColors.textSecondary,
-                size: 22,
-              ),
-              suffixIcon: isSearching
-                  ? IconButton(
-                      icon: const Icon(
-                        Icons.close,
-                        color: AppColors.textSecondary,
-                        size: 20,
-                      ),
-                      onPressed: onClearSearch,
-                    )
-                  : null,
-              filled: true,
-              fillColor: isDark ? AppColors.inputBg : AppColors.inputBgLight,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppLayout.cardBorderRadius),
-                borderSide: BorderSide.none,
-              ),
-            ),
+              const SizedBox(width: 8),
+              const _MaterialsCartButton(),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MaterialsCartButton extends StatelessWidget {
+  const _MaterialsCartButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = Provider.of<SettingsProvider>(context);
+    final count = context.watch<CartProvider>().itemCount;
+    final color = AppColors.accent;
+
+    return InkWell(
+      onTap: () {
+        Provider.of<NavigationProvider>(
+          context,
+          listen: false,
+        ).setIndex(NavigationProvider.tabCart);
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Badge(
+              isLabelVisible: count > 0,
+              label: Text('$count'),
+              backgroundColor: AppColors.accent,
+              textColor: AppColors.accentContrastText,
+              child: Icon(
+                Icons.shopping_cart_outlined,
+                color: color,
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              settings.t('cart'),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

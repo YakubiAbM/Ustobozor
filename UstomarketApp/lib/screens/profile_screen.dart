@@ -6,11 +6,14 @@ import 'package:url_launcher/url_launcher.dart';
 import '../constants.dart';
 import '../api_client.dart';
 import '../features/projects/pages/my_projects_page.dart';
+import '../features/service_requests/pages/my_service_requests_page.dart';
+import '../features/service_requests/pages/master_balance_history_page.dart';
 import '../models/order.dart';
 import '../providers/settings_provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/master_auth_provider.dart';
 import '../providers/client_auth_provider.dart';
+import '../providers/app_mode_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/notifications_provider.dart';
 // import '../services/push_notification_service.dart'; // Push пока отключён
@@ -86,11 +89,189 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final settings = Provider.of<SettingsProvider>(context);
     final user = Provider.of<UserProvider>(context);
+    final master = Provider.of<MasterAuthProvider>(context);
+    final client = Provider.of<ClientAuthProvider>(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final onSurface = theme.colorScheme.onSurface;
     final menuIconColor = isDark ? Colors.white70 : AppColors.textSecondary;
     final hPad = AppLayout.screenHorizontalPadding;
+
+    final isLoggedIn = master.isLoggedIn || client.isLoggedIn;
+
+    if (!isLoggedIn) {
+      return Scaffold(
+        backgroundColor: AppColors.scaffold(isDark),
+        body: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: hPad),
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 44,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Text(
+                        settings.t('profile'),
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryText(isDark),
+                        ),
+                      ),
+                      Positioned(
+                        right: 0,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: settings.t('app_language'),
+                              onPressed: () =>
+                                  _showLanguageSheet(context, settings),
+                              icon: Icon(
+                                Icons.language_outlined,
+                                color: AppColors.secondary(isDark),
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: settings.t('dark_theme'),
+                              onPressed: () =>
+                                  settings.toggleTheme(!settings.isDarkMode),
+                              icon: Icon(
+                                isDark
+                                    ? Icons.light_mode_outlined
+                                    : Icons.dark_mode_outlined,
+                                color: AppColors.secondary(isDark),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 420),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+                        decoration: BoxDecoration(
+                          color: AppColors.card(isDark),
+                          borderRadius: BorderRadius.circular(
+                            AppLayout.cardBorderRadius,
+                          ),
+                          border: isDark
+                              ? null
+                              : Border.all(color: Colors.black12),
+                          boxShadow: isDark
+                              ? null
+                              : [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.05),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.person_outline_rounded,
+                              size: 64,
+                              color: AppColors.accent,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              settings.t('profile_guest_hint'),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 15,
+                                height: 1.4,
+                                color: AppColors.secondary(isDark),
+                              ),
+                            ),
+                            const SizedBox(height: 28),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const ClientLoginPhoneScreen(),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.person_outline, size: 22),
+                                label: Text(settings.t('login_as_client')),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.accent,
+                                  foregroundColor:
+                                      AppColors.accentContrastText,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const MasterLoginPhoneScreen(),
+                                  ),
+                                ),
+                                icon: const Icon(
+                                  Icons.handyman_outlined,
+                                  size: 22,
+                                ),
+                                label: Text(settings.t('login_as_master')),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor:
+                                      AppColors.primaryText(isDark),
+                                  side: BorderSide(
+                                    color: AppColors.divider(isDark),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final phoneLabel = master.isLoggedIn
+        ? (master.masterPhone.isNotEmpty
+            ? master.masterPhone
+            : user.phone)
+        : (client.clientPhone.isNotEmpty
+            ? client.clientPhone
+            : user.phone);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -105,75 +286,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 16),
-                Center(
-                  child: Text(
-                    settings.t('profile'),
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: onSurface,
-                    ),
+                SizedBox(
+                  height: 44,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Text(
+                        settings.t('profile'),
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: onSurface,
+                        ),
+                      ),
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        child: master.isLoggedIn
+                            ? Consumer<NotificationsProvider>(
+                                builder: (context, notif, _) {
+                                  return IconButton(
+                                    tooltip: settings.t('notifications_title'),
+                                    onPressed: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const MasterNotificationsScreen(),
+                                      ),
+                                    ),
+                                    icon: Badge(
+                                      isLabelVisible: notif.unreadCount > 0,
+                                      label: Text(
+                                        notif.unreadCount > 99
+                                            ? '99+'
+                                            : '${notif.unreadCount}',
+                                      ),
+                                      backgroundColor: AppColors.accent,
+                                      child: Icon(
+                                        Icons.notifications_outlined,
+                                        color: onSurface,
+                                        size: 26,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 24),
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundColor: AppColors.accent,
-                      child: Icon(Icons.person, color: AppColors.accentContrastText, size: 40),
+                if (phoneLabel.trim().isNotEmpty)
+                  Text(
+                    phoneLabel,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: onSurface,
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user.name,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: onSurface,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            user.phone,
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                Consumer<MasterAuthProvider>(
-                  builder: (context, master, _) {
-                    if (master.isLoggedIn) {
-                      return const SizedBox.shrink();
-                    }
-                    return Column(
-                      children: [
-                        const SizedBox(height: 20),
-                        _buildClientAuthBlock(
-                          context,
-                          settings,
-                          isDark,
-                          onSurface,
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                    );
-                  },
-                ),
+                  ),
+                if (!master.isLoggedIn) ...[
+                  const SizedBox(height: 20),
+                  _buildClientAuthBlock(
+                    context,
+                    settings,
+                    isDark,
+                    onSurface,
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 _buildMasterAuthBlock(
                   context,
                   settings,
                   isDark,
                   onSurface,
                 ),
+                const SizedBox(height: 12),
+                _buildRoleSwitcher(context, settings, isDark),
                 const SizedBox(height: 20),
                 _buildMenuSection(
                   isDark: isDark,
@@ -191,6 +382,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ),
+                    _ProfileMenuItemData(
+                      icon: Icons.assignment_outlined,
+                      title: settings.t('sr_my_requests'),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const MyServiceRequestsPage(),
+                        ),
+                      ),
+                    ),
+                    if (master.isLoggedIn)
+                      _ProfileMenuItemData(
+                        icon: Icons.account_balance_wallet_outlined,
+                        title: settings.t('master_balance_history'),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const MasterBalanceHistoryPage(),
+                          ),
+                        ),
+                      ),
                     _ProfileMenuItemData(
                       icon: Icons.folder_outlined,
                       title: settings.t('my_projects'),
@@ -288,8 +500,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         context,
                         listen: false,
                       );
+                      final clientAuth = Provider.of<ClientAuthProvider>(
+                        context,
+                        listen: false,
+                      );
                       await user.clearUser();
                       if (masterAuth.isLoggedIn) await masterAuth.logout();
+                      if (clientAuth.isLoggedIn) await clientAuth.logout();
                     },
                     child: Text(
                       settings.t('exit'),
@@ -629,6 +846,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildRoleSwitcher(
+    BuildContext context,
+    SettingsProvider settings,
+    bool isDark,
+  ) {
+    final master = Provider.of<MasterAuthProvider>(context);
+    final mode = Provider.of<AppModeProvider>(context);
+    if (!master.isLoggedIn) {
+      return Material(
+        color: isDark ? AppColors.cardBg : AppColors.cardBgLight,
+        borderRadius: BorderRadius.circular(AppLayout.cardBorderRadius),
+        child: ListTile(
+          leading: const Icon(Icons.handyman_outlined, color: AppColors.accent),
+          title: Text(settings.t('sr_become_master')),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const MasterLoginPhoneScreen()),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardBg : AppColors.cardBgLight,
+        borderRadius: BorderRadius.circular(AppLayout.cardBorderRadius),
+        border: isDark ? null : Border.all(color: Colors.black12),
+      ),
+      child: SwitchListTile.adaptive(
+        contentPadding: EdgeInsets.zero,
+        title: Text(
+          mode.isMasterMode
+              ? settings.t('sr_mode_master')
+              : settings.t('sr_mode_client'),
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        subtitle: Text(
+          mode.isMasterMode
+              ? settings.t('sr_switch_to_client')
+              : settings.t('sr_switch_to_master'),
+        ),
+        value: mode.isMasterMode,
+        activeThumbColor: AppColors.accent,
+        onChanged: (v) async {
+          await mode.setMode(v ? AppUserMode.master : AppUserMode.client);
+          if (!context.mounted) return;
+          Provider.of<NavigationProvider>(context, listen: false)
+              .setIndex(NavigationProvider.tabHome);
+        },
+      ),
+    );
+  }
+
   Widget _buildMasterAuthBlock(
     BuildContext context,
     SettingsProvider settings,
@@ -695,14 +967,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
-                _buildMasterBarcode(
-                  context,
-                  master,
-                  settings,
-                  onSurface,
-                  isDark,
-                ),
+                if (kMasterBarcodeEnabled) ...[
+                  const SizedBox(height: 14),
+                  _buildMasterBarcode(
+                    context,
+                    master,
+                    settings,
+                    onSurface,
+                    isDark,
+                  ),
+                ],
                 if (kMasterPointsEnabled) ...[
                   const SizedBox(height: 14),
                   Consumer<MasterAuthProvider>(
@@ -845,62 +1119,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 14),
-                Consumer<NotificationsProvider>(
-                  builder: (context, notif, _) {
-                    return Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const MasterNotificationsScreen(),
-                          ),
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 10,
-                            horizontal: 4,
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.notifications_outlined,
-                                color: onSurface.withOpacity(0.8),
-                                size: 24,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                settings.t('notifications_title'),
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: onSurface,
-                                ),
-                              ),
-                              const Spacer(),
-                              if (notif.unreadCount > 0)
-                                Badge(
-                                  label: Text('${notif.unreadCount}'),
-                                  backgroundColor: AppColors.accent,
-                                  child: const Icon(
-                                    Icons.chevron_right,
-                                    color: Colors.grey,
-                                  ),
-                                )
-                              else
-                                Icon(
-                                  Icons.chevron_right,
-                                  color: onSurface.withOpacity(0.5),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
               ],
             )
           : Column(

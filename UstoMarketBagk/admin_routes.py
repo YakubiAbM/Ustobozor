@@ -15,7 +15,7 @@ from typing import List
 import barcode
 from barcode.writer import ImageWriter
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import RedirectResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
@@ -45,7 +45,35 @@ except ImportError:
     pd = None
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
+
+# HTML-шаблоны Jinja удалены — старые URL редиректим в SPA.
+_SPA_PAGES = {
+    "dashboard.html": "/admin#dashboard",
+    "products.html": "/admin#products",
+    "add_product.html": "/admin#products",
+    "edit_product.html": "/admin#products",
+    "masters.html": "/admin#masters",
+    "add_master.html": "/admin#masters",
+    "edit_master.html": "/admin#masters",
+    "master_detail.html": "/admin#masters",
+    "orders.html": "/admin#orders",
+    "invoice.html": "/admin#orders",
+    "cashier.html": "/admin#cashier",
+    "debtors.html": "/admin#cashier",
+    "admins.html": "/admin#admins",
+    "edit_admin.html": "/admin#admins",
+    "settings_social.html": "/admin",
+    "403.html": "/admin/login",
+    "admin_login.html": "/admin/login",
+}
+
+
+class _SpaTemplates:
+    def TemplateResponse(self, request, name, context=None, status_code=200):
+        return RedirectResponse(url=_SPA_PAGES.get(name, "/admin"), status_code=302)
+
+
+templates = _SpaTemplates()
 os.makedirs("static/barcodes", exist_ok=True)
 
 
@@ -346,60 +374,24 @@ def admin_settings_social_save(
 # -----------------------------------------------------------------------------
 
 @router.get("/admin")
-def admin_index_redirect(_user: MasterDB = Depends(require_admin)):
-    """Попасть на первый раздел, к которому есть доступ (не на дашборд, если прав нет)."""
-    return RedirectResponse(url=get_first_admin_page_url(_user), status_code=302)
+def admin_index_redirect():
+    """SPA админка (static/admin). Авторизация через /admin/api/*."""
+    from fastapi.responses import FileResponse
+    import os
+
+    path = os.path.join(os.path.dirname(__file__), "static", "admin", "index.html")
+    return FileResponse(path, media_type="text/html; charset=utf-8")
 
 
 # -----------------------------------------------------------------------------
-# Дашборд (/admin/dashboard)
+# Дашборд (/admin/dashboard) — редирект в SPA
 # -----------------------------------------------------------------------------
 
 @router.get("/admin/dashboard")
-def admin_dashboard(request: Request, period: str = "all", db: Session = Depends(get_db), _user: MasterDB = Depends(require_admin_permission("dashboard"))):
-    # Загружаем все данные
-    orders = db.query(OrderDB).all()
-    transactions = db.query(TransactionDB).order_by(TransactionDB.id.desc()).all()
-    masters = db.query(MasterDB).order_by(MasterDB.id.desc()).all()
+def admin_dashboard(_user: MasterDB = Depends(require_admin_permission("dashboard"))):
+    return RedirectResponse(url="/admin#dashboard", status_code=302)
 
-    # Фильтр по датам
-    now = datetime.now()
-    def is_in_period(date_str):
-        if period == "all": return True
-        try:
-            dt = datetime.strptime(date_str, "%Y-%m-%d %H:%M")
-            if period == "week": return (now - dt).days <= 7
-            if period == "month": return (now - dt).days <= 30
-        except: 
-            return False
-        return False
 
-    filtered_orders = [o for o in orders if is_in_period(o.created_at)]
-    filtered_tx = [t for t in transactions if is_in_period(t.created_at)]
-
-    # Считаем статистику
-    new_orders_count = len([o for o in filtered_orders if o.status == 'new'])
-    online_revenue = sum(o.total_price for o in filtered_orders if o.status == 'completed')
-    offline_revenue = sum(t.amount for t in filtered_tx)
-    total_masters = len(masters)
-
-    # Берем последние 5 записей для таблиц
-    recent_orders = sorted(filtered_orders, key=lambda x: x.id, reverse=True)[:5]
-    recent_masters = masters[:5]
-
-    return templates.TemplateResponse(request, "dashboard.html", {
-        "request": request,
-        "page": "dashboard",
-        "period": period,
-        "new_orders_count": new_orders_count,
-        "online_revenue": online_revenue,
-        "offline_revenue": offline_revenue,
-        "total_masters": total_masters,
-        "recent_orders": recent_orders,
-        "recent_masters": recent_masters,
-        "recent_tx": filtered_tx[:5],
-        **_admin_ctx(_user),
-    })
 # --- ТОВАРЫ ---
 def _search_like(term: str):
     """Экранирование % и _ для безопасного LIKE/ILIKE."""
@@ -850,13 +842,15 @@ async def admin_save_master(
         name=name, 
         phone=phone, 
         description=description, 
-        experience=experience, 
+        experience=experience,
+        city="",
         categories_json=json.dumps(final_cats, ensure_ascii=False), 
         image=avatar_url, 
         portfolio_json=json.dumps(portfolio_urls), 
         services_json=json.dumps(services_list, ensure_ascii=False),
         barcode="",
         is_password_reset=1,
+        moderation_status="approved",
     )
     db.add(new_master)
     db.commit()

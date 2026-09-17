@@ -23,6 +23,24 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _fetchStarted = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  String? _selectedCity;
+
+  List<String> get _cities {
+    final set = <String>{};
+    for (final m in _masters) {
+      final c = m.city.trim();
+      if (c.isNotEmpty) set.add(c);
+    }
+    final list = set.toList()..sort();
+    return list;
+  }
+
+  bool _cityMatch(Master m, String? city) {
+    if (city == null || city.isEmpty) return true;
+    final a = m.city.toLowerCase().replaceFirst(RegExp(r'^г\.\s*'), '').trim();
+    final b = city.toLowerCase().replaceFirst(RegExp(r'^г\.\s*'), '').trim();
+    return a == b || a.contains(b) || b.contains(a);
+  }
 
   @override
   void initState() {
@@ -86,13 +104,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<Master> get _filteredMasters {
-    if (_searchQuery.isEmpty) return _masters;
-    return _masters.where((m) {
+    var list = _masters;
+    if (_selectedCity != null) {
+      list = list.where((m) => _cityMatch(m, _selectedCity)).toList();
+    }
+    if (_searchQuery.isEmpty) return list;
+    return list.where((m) {
       if (m.name.toLowerCase().contains(_searchQuery)) return true;
       for (final c in m.categoriesList) {
         if (c.toLowerCase().contains(_searchQuery)) return true;
       }
       if (m.category.toLowerCase().contains(_searchQuery)) return true;
+      if (m.city.toLowerCase().contains(_searchQuery)) return true;
       return false;
     }).toList();
   }
@@ -180,6 +203,44 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+            if (_cities.isNotEmpty)
+              SizedBox(
+                height: 40,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(
+                    AppLayout.screenHorizontalPadding,
+                    0,
+                    AppLayout.screenHorizontalPadding,
+                    4,
+                  ),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: const Text('Все города'),
+                        selected: _selectedCity == null,
+                        onSelected: (_) => setState(() => _selectedCity = null),
+                        selectedColor: AppColors.accent.withOpacity(0.25),
+                        checkmarkColor: AppColors.accent,
+                      ),
+                    ),
+                    ..._cities.map(
+                      (c) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: FilterChip(
+                          label: Text(c),
+                          selected: _selectedCity == c,
+                          onSelected: (_) =>
+                              setState(() => _selectedCity = c),
+                          selectedColor: AppColors.accent.withOpacity(0.25),
+                          checkmarkColor: AppColors.accent,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.accent,

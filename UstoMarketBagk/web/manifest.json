@@ -1,14 +1,14 @@
 {
   "name": "Ustobozor",
   "short_name": "Ustobozor",
-  "description": "Строительные материалы и мастера в Истаравшане — Ustobozor",
+  "description": "Masters and services across Tajikistan ? Ustobozor.tj",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#F59E0B",
   "background_color": "#F3F4F6",
-  "lang": "tg",
+  "lang": "ru",
   "icons": [
     {
       "src": "/icon-192.png",

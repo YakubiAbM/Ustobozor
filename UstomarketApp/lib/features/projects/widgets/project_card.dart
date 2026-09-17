@@ -60,9 +60,9 @@ class _ProjectCardState extends State<ProjectCard> {
                 : null));
 
     final statusColor =
-        project.hasDebt ? const Color(0xFFEA580C) : AppColors.accent;
+        project.hasDebt ? const Color(0xFFDC2626) : const Color(0xFF16A34A);
     final statusLabel = project.hasDebt
-        ? settings.t('project_has_debt')
+        ? '${settings.t('project_debt_left')}: ${_formatMoney(project.debtAmount)}'
         : settings.t('project_paid');
 
     return Material(
@@ -126,7 +126,7 @@ class _ProjectCardState extends State<ProjectCard> {
                         const SizedBox(width: 8),
                         Text(
                           DateFormat(
-                            'd MMM',
+                            'd.MM.y',
                             settings.intlLocaleCode,
                           ).format(project.date),
                           style: TextStyle(

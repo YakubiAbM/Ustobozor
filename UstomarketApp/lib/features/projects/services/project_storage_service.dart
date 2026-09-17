@@ -12,7 +12,7 @@ class ProjectStorageService {
 
   static const String boxName = 'projectsBox';
   static const int maxProjects = 100;
-  static const int maxImagesPerProject = 5;
+  static const int maxImagesPerProject = 12;
 
   Box<dynamic>? _box;
 
@@ -63,6 +63,9 @@ class ProjectStorageService {
       for (final imagePath in existing.images) {
         await _safeDeleteFile(imagePath);
       }
+      for (final sketch in existing.sketches) {
+        await _safeDeleteFile(sketch.imagePath);
+      }
       await _safeDeleteFile(existing.beforeVideo);
       await _safeDeleteFile(existing.afterVideo);
 
@@ -103,17 +106,70 @@ class ProjectStorageService {
       oldPath: existingProject?.afterVideo,
       filePrefix: 'after_video',
     );
+    final persistedSketches = await _persistSketches(
+      project.id,
+      project.sketches,
+      oldSketches: existingProject?.sketches ?? const [],
+    );
 
     return project.copyWith(
       title: project.title.trim(),
       client: project.client.trim(),
       phone: project.phone.trim(),
+      address: project.address.trim(),
       note: project.note.trim(),
       beforeImages: persistedBeforeImages,
       afterImages: persistedAfterImages,
       beforeVideo: persistedBeforeVideo,
       afterVideo: persistedAfterVideo,
+      sketches: persistedSketches,
     );
+  }
+
+  Future<List<ProjectSketch>> _persistSketches(
+    String projectId,
+    List<ProjectSketch> sketches, {
+    required List<ProjectSketch> oldSketches,
+  }) async {
+    final directory = await _projectImagesDirectory(projectId);
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+    final normalizedDirectory = _normalizePath(directory.path);
+    final result = <ProjectSketch>[];
+
+    for (final sketch in sketches) {
+      final sourcePath = sketch.imagePath.trim();
+      if (sourcePath.isEmpty) continue;
+      final normalizedSource = _normalizePath(sourcePath);
+      if (normalizedSource.startsWith(normalizedDirectory)) {
+        result.add(sketch);
+        continue;
+      }
+      final sourceFile = File(sourcePath);
+      if (!await sourceFile.exists()) continue;
+      final extension = _fileExtension(sourcePath);
+      final fileName =
+          'sketch_${DateTime.now().microsecondsSinceEpoch}_${result.length}$extension';
+      final destination = File(
+        '${directory.path}${Platform.pathSeparator}$fileName',
+      );
+      await sourceFile.copy(destination.path);
+      result.add(
+        ProjectSketch(
+          id: sketch.id,
+          imagePath: destination.path,
+          createdAt: sketch.createdAt,
+        ),
+      );
+    }
+
+    for (final old in oldSketches) {
+      if (!result.any((s) => s.imagePath == old.imagePath)) {
+        await _safeDeleteFile(old.imagePath);
+      }
+    }
+    return result;
   }
 
   Future<List<String>> _persistImages(

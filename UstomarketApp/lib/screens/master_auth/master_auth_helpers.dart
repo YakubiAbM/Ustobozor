@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../main.dart';
+import '../../providers/app_mode_provider.dart';
 import '../../providers/master_auth_provider.dart';
+import '../../providers/navigation_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../utils/master_code_format.dart';
@@ -33,8 +36,10 @@ Future<void> applyMasterLoginFromBody(
       masterCode = trimmed;
     }
   }
-  final accessToken = body['access_token'] is String ? (body['access_token'] as String).trim() : null;
-  final refreshToken = body['refresh_token'] is String ? (body['refresh_token'] as String).trim() : null;
+  final accessToken =
+      body['access_token'] is String ? (body['access_token'] as String).trim() : null;
+  final refreshToken =
+      body['refresh_token'] is String ? (body['refresh_token'] as String).trim() : null;
 
   await context.read<MasterAuthProvider>().setMaster(
         masterId: masterId,
@@ -46,6 +51,8 @@ Future<void> applyMasterLoginFromBody(
         refreshToken: refreshToken,
       );
 
+  if (!context.mounted) return;
+
   final userProvider = context.read<UserProvider>();
   await userProvider.updateUserData(
     name: name,
@@ -54,11 +61,24 @@ Future<void> applyMasterLoginFromBody(
   );
 
   if (!context.mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(context.read<SettingsProvider>().t('master_login_success')),
-      backgroundColor: Colors.green,
-    ),
-  );
-  Navigator.popUntil(context, (route) => route.isFirst);
+
+  // Включаем режим мастера — сразу доступны заявки, проекты, публикация.
+  await context.read<AppModeProvider>().switchToMaster();
+  if (!context.mounted) return;
+
+  final successMsg = context.read<SettingsProvider>().t('master_login_success');
+  context.read<NavigationProvider>().setIndex(NavigationProvider.tabProfile);
+
+  Navigator.of(context).popUntil((route) => route.isFirst);
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    scaffoldMessengerKey.currentState
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(successMsg),
+          backgroundColor: Colors.green,
+        ),
+      );
+  });
 }

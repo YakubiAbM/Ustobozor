@@ -35,9 +35,12 @@ def run_migration():
                 ("is_superadmin", "ALTER TABLE masters ADD COLUMN is_superadmin INTEGER NOT NULL DEFAULT 0"),
                 ("admin_permissions", "ALTER TABLE masters ADD COLUMN admin_permissions TEXT"),
                 ("debt", "ALTER TABLE masters ADD COLUMN debt REAL NOT NULL DEFAULT 0"),
+                ("city", "ALTER TABLE masters ADD COLUMN city VARCHAR(128) DEFAULT ''"),
                 ("payment_type", "ALTER TABLE orders ADD COLUMN payment_type VARCHAR(16)"),
                 ("comment", "ALTER TABLE orders ADD COLUMN comment TEXT"),
                 ("user_kind", "ALTER TABLE refresh_tokens ADD COLUMN user_kind VARCHAR(16) NOT NULL DEFAULT 'master'"),
+                ("moderation_status", "ALTER TABLE masters ADD COLUMN moderation_status VARCHAR(16) DEFAULT 'approved'"),
+                ("moderation_note", "ALTER TABLE masters ADD COLUMN moderation_note VARCHAR(255) DEFAULT ''"),
             ]:
                 try:
                     conn.execute(text(sql))
@@ -65,9 +68,12 @@ def run_migration():
                 ("is_superadmin", "ALTER TABLE masters ADD COLUMN IF NOT EXISTS is_superadmin INTEGER NOT NULL DEFAULT 0"),
                 ("admin_permissions", "ALTER TABLE masters ADD COLUMN IF NOT EXISTS admin_permissions TEXT"),
                 ("debt", "ALTER TABLE masters ADD COLUMN IF NOT EXISTS debt DOUBLE PRECISION NOT NULL DEFAULT 0"),
+                ("city", "ALTER TABLE masters ADD COLUMN IF NOT EXISTS city VARCHAR(128) DEFAULT ''"),
                 ("payment_type", "ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_type VARCHAR(16)"),
                 ("comment", "ALTER TABLE orders ADD COLUMN IF NOT EXISTS comment TEXT"),
                 ("user_kind", "ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS user_kind VARCHAR(16) NOT NULL DEFAULT 'master'"),
+                ("moderation_status", "ALTER TABLE masters ADD COLUMN IF NOT EXISTS moderation_status VARCHAR(16) DEFAULT 'approved'"),
+                ("moderation_note", "ALTER TABLE masters ADD COLUMN IF NOT EXISTS moderation_note VARCHAR(255) DEFAULT ''"),
             ]:
                 try:
                     conn.execute(text(sql))
@@ -97,6 +103,17 @@ def run_migration():
                     o.client_phone_norm = digits[-9:]
         db.commit()
         print("  Updated phone_norm / client_phone_norm")
+
+        # Существующие мастера без статуса → approved (уже в каталоге)
+        fixed = 0
+        for m in db.query(MasterDB).all():
+            st = getattr(m, "moderation_status", None)
+            if st is None or str(st).strip() == "":
+                m.moderation_status = "approved"
+                fixed += 1
+        if fixed:
+            db.commit()
+            print(f"  Backfilled moderation_status=approved for {fixed} masters")
     except Exception as e:
         print(f"  Update norms: {e}")
         db.rollback()

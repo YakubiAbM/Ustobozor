@@ -6,7 +6,7 @@ import '../providers/settings_provider.dart';
 import '../providers/master_auth_provider.dart';
 import '../widgets/master_qr_code_card.dart';
 
-/// Профиль мастера: как обычный профиль + код мастера (ID) + баллы. Трата баллов отключена.
+/// Профиль мастера. QR и баллы временно отключены.
 class MasterProfileScreen extends StatefulWidget {
   const MasterProfileScreen({super.key});
 
@@ -33,8 +33,7 @@ class _MasterProfileScreenState extends State<MasterProfileScreen> {
     final isDark = theme.brightness == Brightness.dark;
     final onSurface = theme.colorScheme.onSurface;
 
-    return MasterQrBrightnessScope(
-      child: Scaffold(
+    Widget scaffold = Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: theme.scaffoldBackgroundColor,
@@ -91,28 +90,30 @@ class _MasterProfileScreenState extends State<MasterProfileScreen> {
                 ],
               ),
               const SizedBox(height: 24),
-              Text(
-                settings.t('master_your_code'),
-                style: TextStyle(fontSize: 14, color: onSurface.withOpacity(0.8)),
-              ),
-              const SizedBox(height: 8),
-              MasterQrCodeCard(
-                code: master.masterCode ?? '',
-                size: 220,
-                onTap: master.masterCode != null
-                    ? () => showMasterQrFullScreen(
-                          context,
-                          code: master.masterCode!,
-                          title: settings.t('master_your_code'),
-                        )
-                    : null,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                settings.t('master_code_hint'),
-                style: TextStyle(fontSize: 12, color: onSurface.withOpacity(0.6), height: 1.3),
-              ),
-              const SizedBox(height: 16),
+              if (kMasterBarcodeEnabled) ...[
+                Text(
+                  settings.t('master_your_code'),
+                  style: TextStyle(fontSize: 14, color: onSurface.withOpacity(0.8)),
+                ),
+                const SizedBox(height: 8),
+                MasterQrCodeCard(
+                  code: master.masterCode ?? '',
+                  size: 220,
+                  onTap: master.masterCode != null
+                      ? () => showMasterQrFullScreen(
+                            context,
+                            code: master.masterCode!,
+                            title: settings.t('master_your_code'),
+                          )
+                      : null,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  settings.t('master_code_hint'),
+                  style: TextStyle(fontSize: 12, color: onSurface.withOpacity(0.6), height: 1.3),
+                ),
+                const SizedBox(height: 16),
+              ],
               // Баллы мастера временно отключены (kMasterPointsEnabled).
               if (kMasterPointsEnabled)
                 Container(
@@ -201,8 +202,12 @@ class _MasterProfileScreenState extends State<MasterProfileScreen> {
           ),
         ),
       ),
-    ),
     );
+
+    if (kMasterBarcodeEnabled) {
+      return MasterQrBrightnessScope(child: scaffold);
+    }
+    return scaffold;
   }
 
   Widget _buildAnnouncementBlock(BuildContext context, SettingsProvider settings, bool isDark, Color onSurface) {

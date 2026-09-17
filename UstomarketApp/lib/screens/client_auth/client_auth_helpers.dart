@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../main.dart';
+import '../../providers/app_mode_provider.dart';
 import '../../providers/client_auth_provider.dart';
+import '../../providers/navigation_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/user_provider.dart';
 
@@ -28,6 +31,8 @@ Future<void> applyClientLoginFromBody(
         refreshToken: refreshToken,
       );
 
+  if (!context.mounted) return;
+
   final userProvider = context.read<UserProvider>();
   await userProvider.updateUserData(
     name: name.isEmpty ? 'Клиент' : name,
@@ -36,11 +41,23 @@ Future<void> applyClientLoginFromBody(
   );
 
   if (!context.mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(context.read<SettingsProvider>().t('client_login_success')),
-      backgroundColor: Colors.green,
-    ),
-  );
-  Navigator.pop(context);
+
+  await context.read<AppModeProvider>().switchToClient();
+  if (!context.mounted) return;
+
+  final successMsg = context.read<SettingsProvider>().t('client_login_success');
+  context.read<NavigationProvider>().setIndex(NavigationProvider.tabProfile);
+
+  Navigator.of(context).popUntil((route) => route.isFirst);
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    scaffoldMessengerKey.currentState
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(successMsg),
+          backgroundColor: Colors.green,
+        ),
+      );
+  });
 }

@@ -8,7 +8,7 @@ import '../providers/master_auth_provider.dart';
 import '../providers/notifications_provider.dart';
 import '../providers/settings_provider.dart';
 
-/// Список уведомлений мастера: акции (promo), начисление/списание баллов.
+/// Список уведомлений мастера: акции (promo) и др. Баллы временно скрыты.
 class MasterNotificationsScreen extends StatefulWidget {
   const MasterNotificationsScreen({super.key});
 

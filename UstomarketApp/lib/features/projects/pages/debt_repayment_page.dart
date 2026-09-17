@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../constants.dart';
 import '../../../providers/settings_provider.dart';
@@ -87,10 +88,19 @@ class _DebtRepaymentPageState extends State<DebtRepaymentPage> {
     setState(() => _saving = true);
 
     final newReceived = project.receivedAmount + payment;
+    final paymentRecord = ProjectPayment(
+      id: const Uuid().v4(),
+      amount: payment,
+      date: DateTime.now(),
+      note: settings.t('debt_repayment_title'),
+    );
 
     try {
       await ProjectStorageService.instance.updateProject(
-        project.copyWith(receivedAmount: newReceived),
+        project.copyWith(
+          receivedAmount: newReceived,
+          payments: [...project.payments, paymentRecord],
+        ),
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

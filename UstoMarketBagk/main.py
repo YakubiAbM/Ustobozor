@@ -37,6 +37,9 @@ from admin_routes import router as admin_router
 from admin_mobile_api import router as admin_mobile_router
 from auth_routes import router as auth_router
 from client_auth_routes import router as client_auth_router
+from service_requests_api import router as service_requests_router
+from service_catalog_api import router as service_catalog_router
+from master_listing_api import router as master_listing_router
 from auth import (
     normalize_phone,
     get_current_user,
@@ -133,6 +136,12 @@ app.include_router(auth_router)
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(client_auth_router)
 app.include_router(client_auth_router, prefix="/api/v1")
+app.include_router(service_requests_router)
+app.include_router(service_requests_router, prefix="/api/v1")
+app.include_router(service_catalog_router)
+app.include_router(service_catalog_router, prefix="/api/v1")
+app.include_router(master_listing_router)
+app.include_router(master_listing_router, prefix="/api/v1")
 app.include_router(admin_router)
 app.include_router(admin_mobile_router)
 templates = Jinja2Templates(directory="templates")
@@ -149,10 +158,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             return JSONResponse(status_code=403, content={"detail": exc.detail})
         return RedirectResponse(url="/admin", status_code=302)
     if exc.status_code == 403:
-        return templates.TemplateResponse(request, "403.html",
-            {"request": request},
-            status_code=403,
-        )
+        return JSONResponse(status_code=403, content={"detail": exc.detail})
     # Браузер без сессии на /admin → страница входа; mobile API — JSON 401
     if exc.status_code == 401:
         if is_admin_api:
@@ -217,8 +223,9 @@ def _apply_rate_limit(limit: str):
 
 @app.get("/admin/login")
 def admin_login_page(request: Request):
-    """Страница входа: логин + пароль (супер-админ из .env)."""
-    return templates.TemplateResponse(request, "admin_login.html", {"request": request})
+    """SPA-вход в админку."""
+    path = os.path.join(os.path.dirname(__file__), "static", "admin", "index.html")
+    return FileResponse(path, media_type="text/html; charset=utf-8")
 
 
 def _get_superadmin_credentials():
@@ -489,24 +496,90 @@ def search_products_api(
 
 @app.get("/masters", response_model=List[MasterResponse])
 def get_masters_api(db: Session = Depends(get_db)):
-    """Список мастеров (по имени; при включённых баллах — по points)."""
-    q = db.query(MasterDB)
+    """Список мастеров (только одобренные для каталога)."""
+    from service_catalog_api import master_review_stats_map
+
+    q = db.query(MasterDB).filter(
+        or_(
+            MasterDB.moderation_status == "approved",
+            MasterDB.moderation_status.is_(None),
+            MasterDB.moderation_status == "",
+        )
+    )
+    # не показываем пустые анкеты без имени и дубликаты, слитые в другой профиль
+    q = q.filter(MasterDB.name.isnot(None), MasterDB.name != "")
+    q = q.filter(
+        or_(
+            MasterDB.merged_into_master_id.is_(None),
+            MasterDB.merged_into_master_id == 0,
+        )
+    )
     if MASTER_POINTS_ENABLED:
         masters = q.order_by(MasterDB.points.desc()).all()
     else:
         masters = q.order_by(MasterDB.name.asc()).all()
+    # Рейтинг и число отзывов — только из реальной таблицы отзывов.
+    stats = master_review_stats_map(db)
     out = []
     for m in masters:
         pf = _parse_json_field(m.portfolio_json, [])
         srv = _parse_json_field(m.services_json, [])
         cats = _parse_json_field(m.categories_json, [])
         exp = m.experience if m.experience is not None else 0
+        cnt, avg = stats.get(m.id, (0, 0.0))
         out.append(MasterResponse(
             id=m.id, name=m.name, phone=m.phone, description=m.description or "",
-            experience=exp, image=m.image, rating=m.rating,
+            experience=exp, city=(getattr(m, "city", None) or ""), image=m.image,
+            rating=avg if cnt > 0 else 0.0,
+            reviews_count=cnt,
             categories=cats, portfolio=pf, services=srv,
         ))
     return out
+
+
+def _resolve_canonical_master(db: Session, master_id: int) -> Optional[MasterDB]:
+    """Follow merged_into_master_id so home/orders open the same profile."""
+    seen: set[int] = set()
+    mid = master_id
+    while mid and mid not in seen:
+        seen.add(mid)
+        m = db.query(MasterDB).filter(MasterDB.id == mid).first()
+        if not m:
+            return None
+        target = getattr(m, "merged_into_master_id", None)
+        if target and int(target) != mid:
+            mid = int(target)
+            continue
+        return m
+    return db.query(MasterDB).filter(MasterDB.id == master_id).first()
+
+
+@app.get("/masters/{master_id}", response_model=MasterResponse)
+def get_master_by_id_api(master_id: int, db: Session = Depends(get_db)):
+    from service_catalog_api import master_review_stats
+
+    m = _resolve_canonical_master(db, master_id)
+    if not m or not (m.name or "").strip():
+        raise HTTPException(status_code=404, detail="Мастер не найден")
+    pf = _parse_json_field(m.portfolio_json, [])
+    srv = _parse_json_field(m.services_json, [])
+    cats = _parse_json_field(m.categories_json, [])
+    exp = m.experience if m.experience is not None else 0
+    cnt, avg = master_review_stats(db, m.id)
+    return MasterResponse(
+        id=m.id,
+        name=m.name,
+        phone=m.phone,
+        description=m.description or "",
+        experience=exp,
+        city=(getattr(m, "city", None) or ""),
+        image=m.image,
+        rating=avg if cnt > 0 else 0.0,
+        reviews_count=cnt,
+        categories=cats,
+        portfolio=pf,
+        services=srv,
+    )
 
 
 @app.post("/api/v1/calculator/estimate-room")
@@ -1109,10 +1182,14 @@ def telegram_set_webhook(url: str = Query(..., description="Полный URL в�
 def startup_event():
     """При старте: кеш поиска + фоновая очистка OTP (in-memory)."""
     from services.otp_cleanup import start_otp_cleanup_background
+    from service_catalog_api import sync_all_master_ratings_from_reviews
 
     start_otp_cleanup_background()
     db = SessionLocal()
     try:
+        n = sync_all_master_ratings_from_reviews(db)
+        if n:
+            print(f"Синхронизированы рейтинги мастеров из отзывов: {n}")
         refresh_products_cache(db)
         print(f"Загружено {len(PRODUCTS_CACHE)} товаров в кеш поиска.")
     finally:
@@ -1128,6 +1205,25 @@ def startup_event():
 def legacy_web_redirect():
     """Старые ссылки /web/ → главная."""
     return RedirectResponse(url="/", status_code=301)
+
+
+def _spa_index():
+    from fastapi.responses import FileResponse
+    return FileResponse(os.path.join(_WEB_DIR, "index.html"))
+
+
+@app.get("/masters", include_in_schema=False)
+@app.get("/search", include_in_schema=False)
+@app.get("/orders/create", include_in_schema=False)
+@app.get("/orders/my", include_in_schema=False)
+@app.get("/cabinet", include_in_schema=False)
+def spa_list_pages():
+    return _spa_index()
+
+
+@app.get("/master/{master_id}", include_in_schema=False)
+def spa_master_page(master_id: str):
+    return _spa_index()
 
 
 app.mount("/", StaticFiles(directory=_WEB_DIR, html=True), name="pwa_root")

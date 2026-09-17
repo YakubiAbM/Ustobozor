@@ -120,6 +120,81 @@ class _MasterDetailScreenState extends State<MasterDetailScreen> {
     }
   }
 
+  Future<void> _approve() async {
+    try {
+      final d = await AdminMastersCrudApi.approve(widget.masterId);
+      if (!mounted) return;
+      setState(() => _detail = d);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Объявление одобрено'), backgroundColor: AppColors.accent),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: Colors.redAccent),
+      );
+    }
+  }
+
+  Future<void> _reject() async {
+    final noteCtrl = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.card,
+        title: const Text('Отклонить объявление?', style: TextStyle(color: AppColors.text)),
+        content: TextField(
+          controller: noteCtrl,
+          style: const TextStyle(color: AppColors.text),
+          decoration: const InputDecoration(
+            hintText: 'Причина (необязательно)',
+          ),
+          maxLines: 2,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Отклонить'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      final d = await AdminMastersCrudApi.reject(
+        widget.masterId,
+        note: noteCtrl.text.trim(),
+      );
+      if (!mounted) return;
+      setState(() => _detail = d);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Объявление отклонено'), backgroundColor: AppColors.orange),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: Colors.redAccent),
+      );
+    }
+  }
+
+  String _moderationLabel(String status) {
+    switch (status) {
+      case 'pending':
+        return 'На модерации';
+      case 'approved':
+        return 'Опубликовано';
+      case 'rejected':
+        return 'Отклонено';
+      case 'draft':
+        return 'Черновик';
+      default:
+        return status;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -142,6 +217,43 @@ class _MasterDetailScreenState extends State<MasterDetailScreen> {
                       child: ListView(
                         padding: const EdgeInsets.all(AppLayout.screenPadding),
                         children: [
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.only(bottom: 16),
+                            decoration: BoxDecoration(
+                              color: AppColors.inputBg,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Статус: ${_moderationLabel(_detail!.moderationStatus)}'
+                              '${_detail!.moderationNote.isNotEmpty ? '\n${_detail!.moderationNote}' : ''}',
+                              style: const TextStyle(color: AppColors.text, height: 1.35),
+                            ),
+                          ),
+                          if (_detail!.moderationStatus == 'pending') ...[
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: FilledButton.icon(
+                                    onPressed: _approve,
+                                    icon: const Icon(Icons.check),
+                                    label: const Text('Одобрить'),
+                                    style: FilledButton.styleFrom(backgroundColor: const Color(0xFF16A34A)),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: _reject,
+                                    icon: const Icon(Icons.close, color: Colors.redAccent),
+                                    label: const Text('Отклонить', style: TextStyle(color: Colors.redAccent)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                          ],
                           if (kMasterPointsEnabled)
                             _StatTile(label: 'Баллы', value: '${_detail!.points}'),
                           _StatTile(label: 'Долг', value: '${_detail!.debt.toStringAsFixed(0)} TJS'),

@@ -20,6 +20,7 @@ class _MastersScreenState extends State<MastersScreen> {
   bool _showList = false;
   bool _fetchStarted = false;
   String? _selectedCategory; // null = все мастера
+  String? _selectedCity; // null = все города
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
@@ -33,6 +34,23 @@ class _MastersScreenState extends State<MastersScreen> {
     'Сварщик',
     'Электрик',
   ];
+
+  List<String> get _cities {
+    final set = <String>{};
+    for (final m in _masters) {
+      final c = m.city.trim();
+      if (c.isNotEmpty) set.add(c);
+    }
+    final list = set.toList()..sort();
+    return list;
+  }
+
+  bool _cityMatch(Master m, String? city) {
+    if (city == null || city.isEmpty) return true;
+    final a = m.city.toLowerCase().replaceFirst(RegExp(r'^г\.\s*'), '').trim();
+    final b = city.toLowerCase().replaceFirst(RegExp(r'^г\.\s*'), '').trim();
+    return a == b || a.contains(b) || b.contains(a);
+  }
 
   @override
   void initState() {
@@ -117,6 +135,9 @@ class _MastersScreenState extends State<MastersScreen> {
         return m.category == _selectedCategory;
       }).toList();
     }
+    if (_selectedCity != null) {
+      list = list.where((m) => _cityMatch(m, _selectedCity)).toList();
+    }
     if (_searchQuery.isEmpty) return list;
     return list.where((m) {
       if (m.name.toLowerCase().contains(_searchQuery)) return true;
@@ -124,6 +145,7 @@ class _MastersScreenState extends State<MastersScreen> {
         if (c.toLowerCase().contains(_searchQuery)) return true;
       }
       if (m.category.toLowerCase().contains(_searchQuery)) return true;
+      if (m.city.toLowerCase().contains(_searchQuery)) return true;
       return false;
     }).toList();
   }
@@ -166,7 +188,7 @@ class _MastersScreenState extends State<MastersScreen> {
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Поиск мастера (имя, профессия)...',
+                    hintText: 'Поиск мастера (имя, профессия, город)...',
                     hintStyle: TextStyle(
                       color: theme.colorScheme.onSurface.withOpacity(0.5),
                       fontSize: 14,
@@ -195,6 +217,40 @@ class _MastersScreenState extends State<MastersScreen> {
                   ),
                 ),
               ),
+              if (_cities.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 36,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: FilterChip(
+                          label: const Text('Все города'),
+                          selected: _selectedCity == null,
+                          onSelected: (_) => setState(() => _selectedCity = null),
+                          selectedColor: AppColors.accent.withOpacity(0.25),
+                          checkmarkColor: AppColors.accent,
+                        ),
+                      ),
+                      ..._cities.map(
+                        (c) => Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: FilterChip(
+                            label: Text(c),
+                            selected: _selectedCity == c,
+                            onSelected: (_) => setState(() => _selectedCity = c),
+                            selectedColor: AppColors.accent.withOpacity(0.25),
+                            checkmarkColor: AppColors.accent,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               // ← ВСЕ МАСТЕРА (N)
               Padding(

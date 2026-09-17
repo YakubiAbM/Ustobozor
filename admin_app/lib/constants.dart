@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 
+/// `true` — локальный backend. `false` — prod.
+const bool kUseLocalApi = true;
+const String kProdBaseUrl = 'https://ustobozor.tj';
+const String kLocalBaseUrl = 'http://127.0.0.1:8000';
+
 /// Тот же сервер, что и клиентское приложение.
-const String baseUrl = 'https://ustobozor.tj';
+String get baseUrl => kUseLocalApi ? kLocalBaseUrl : kProdBaseUrl;
 
 const String kAppIconAsset = 'assets/icon.png';
 const String kSplashAsset = 'assets/splash.png';

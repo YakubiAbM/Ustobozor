@@ -48,6 +48,29 @@ class MasterRepository {
     }
   }
 
+  Future<Master?> getById(int id) async {
+    if (id <= 0) return null;
+    try {
+      final response = await apiGet('/masters/$id');
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      if (data is! Map) return null;
+      return Master.fromJson(Map<String, dynamic>.from(data));
+    } catch (_) {
+      // fallback: из кеша списка
+      final all = await getCachedAllMasters();
+      for (final m in all) {
+        if (m.id == id) return m;
+      }
+      try {
+        final fresh = await refreshAllMasters();
+        for (final m in fresh) {
+          if (m.id == id) return m;
+        }
+      } catch (_) {}
+      return null;
+    }
+  }
+
   List<Master> _decodeMasters(String body) {
     final dynamic data = json.decode(body);
     if (data is! List) return [];

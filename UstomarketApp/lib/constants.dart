@@ -1,10 +1,46 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 // === КОНФИГУРАЦИЯ СЕРВЕРА ===
-/// Prod API — основной домен.
-const String baseUrl = 'https://ustobozor.tj';
+/// `true` — ходить на локальный backend (localhost / эмулятор).
+/// `false` — prod `https://ustobozor.tj`.
+const bool kUseLocalApi = true;
 
-/// Единственный URL для всех API-запросов.
+/// Prod API.
+const String kProdBaseUrl = 'https://ustobozor.tj';
+
+/// Порт локального uvicorn (`python -m uvicorn main:app --host 0.0.0.0 --port 8000`).
+const int kLocalApiPort = 8000;
+
+/// Для физического устройства в одной Wi‑Fi сети с Mac.
+/// Узнать IP: `ipconfig getifaddr en0`
+const String kLocalLanHost = '172.20.10.14';
+
+/// `true` — использовать LAN IP (реальный телефон). `false` — emulator/simulator.
+const bool kUseLanHostForLocalApi = false;
+
+String get baseUrl {
+  if (!kUseLocalApi) return kProdBaseUrl;
+  if (kUseLanHostForLocalApi) {
+    return 'http://$kLocalLanHost:$kLocalApiPort';
+  }
+  if (kIsWeb) return 'http://127.0.0.1:$kLocalApiPort';
+  try {
+    if (Platform.isAndroid) {
+      // Android emulator → хост-машина.
+      return 'http://10.0.2.2:$kLocalApiPort';
+    }
+    if (Platform.isIOS) {
+      // iOS Simulator → localhost.
+      return 'http://127.0.0.1:$kLocalApiPort';
+    }
+  } catch (_) {}
+  return 'http://127.0.0.1:$kLocalApiPort';
+}
+
+/// Единственный URL для всех API-запросов и картинок.
 String get effectiveBaseUrl => baseUrl;
 
 /// Prod: false. Dev: true (нужен SKIP_MASTER_OTP=1 на бэке).
@@ -12,6 +48,12 @@ const bool kAllowDevMasterLogin = false;
 
 /// Программа баллов мастеров (временно отключена).
 const bool kMasterPointsEnabled = false;
+
+/// QR / штрих-код мастера в профиле (временно отключён).
+const bool kMasterBarcodeEnabled = false;
+
+/// Отзывы / рейтинг мастеров (временно отключены).
+const bool kMasterReviewsEnabled = true;
 
 /// Папка загрузок на сервере (если путь из API без static/).
 const String uploadsPath = 'static/uploads';
@@ -101,6 +143,16 @@ String getImageUrl(String? path) {
   }
   if (trimmed.startsWith('/')) return '$effectiveBaseUrl$trimmed';
   if (trimmed.startsWith('static/')) return '$effectiveBaseUrl/$trimmed';
+  if (trimmed.startsWith('images/')) {
+    return '$effectiveBaseUrl/static/$trimmed';
+  }
+  // Файлы мастеров/товаров обычно в static/images
+  if (trimmed.toLowerCase().endsWith('.webp') ||
+      trimmed.toLowerCase().endsWith('.jpg') ||
+      trimmed.toLowerCase().endsWith('.jpeg') ||
+      trimmed.toLowerCase().endsWith('.png')) {
+    return '$effectiveBaseUrl/static/images/$trimmed';
+  }
   return '$effectiveBaseUrl/$uploadsPath/$trimmed';
 }
 

@@ -167,6 +167,23 @@ EXTRA_DESCRIPTIONS = [
     "Работаю по договорённости, без предоплаты.",
 ]
 
+# Города Таджикистана
+CITIES = [
+    "г. Душанбе",
+    "г. Худжанд",
+    "г. Истаравшан",
+    "г. Бохтар",
+    "г. Куляб",
+    "г. Пенджикент",
+    "г. Бустон",
+    "г. Исфара",
+    "г. Канибадам",
+    "г. Гулистон",
+    "г. Турсунзода",
+    "г. Вахдат",
+    "г. Хорог",
+]
+
 
 def _picsum_url(seed: str, width: int = 800, height: int = 600) -> str:
     safe = "".join(c if c.isalnum() or c in "-_" else "-" for c in seed)
@@ -269,6 +286,7 @@ def seed_masters(*, count: int = 50, download_images: bool = True, replace: bool
         description = f"{prof['desc']} {rng.choice(EXTRA_DESCRIPTIONS)}"
         experience = rng.randint(2, 22)
         rating = round(rng.uniform(3.8, 5.0), 1)
+        city = rng.choice(CITIES)
 
         avatar = ""
         portfolio: list[str] = []
@@ -290,6 +308,7 @@ def seed_masters(*, count: int = 50, download_images: bool = True, replace: bool
             categories_json=json.dumps(categories, ensure_ascii=False),
             description=description,
             experience=experience,
+            city=city,
             image=avatar,
             portfolio_json=json.dumps(portfolio, ensure_ascii=False),
             services_json=json.dumps(services, ensure_ascii=False),
@@ -302,7 +321,7 @@ def seed_masters(*, count: int = 50, download_images: bool = True, replace: bool
         db.add(master)
         db.commit()
         created += 1
-        print(f"  [ok] [{i}/{count}] {name} — {profession_key}, услуг: {len(services)}, фото: {len(portfolio) + (1 if avatar else 0)}")
+        print(f"  [ok] [{i}/{count}] {name} — {profession_key}, {city}, услуг: {len(services)}, фото: {len(portfolio) + (1 if avatar else 0)}")
 
     db.close()
     print(f"\nГотово: добавлено {created}, пропущено {skipped} (уже в базе).")

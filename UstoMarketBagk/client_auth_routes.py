@@ -23,6 +23,14 @@ from auth import (
 )
 from database import ClientDB, get_db
 from services.otp_service import normalize_phone_intl, phone_norm_from_intl
+from services.auth_form_security import (
+    assert_not_login_locked,
+    clear_login_failures,
+    guard_auth_form,
+    record_login_failure,
+    sanitize_display_name,
+    validate_password_or_code,
+)
 
 try:
     from rate_limit import limiter
@@ -42,17 +50,23 @@ def _rate_limit(limit: str):
 
 class PhoneBody(BaseModel):
     phone_number: str
+    website: Optional[str] = None
+    form_started_at: Optional[float] = None
 
 
 class LoginBody(BaseModel):
     phone_number: str
     password: str
+    website: Optional[str] = None
+    form_started_at: Optional[float] = None
 
 
 class RegisterBody(BaseModel):
     phone_number: str
     password: str
     name: Optional[str] = None
+    website: Optional[str] = None
+    form_started_at: Optional[float] = None
 
 
 class RefreshBody(BaseModel):
@@ -69,12 +83,9 @@ def _find_client(db: Session, phone_norm: str) -> Optional[ClientDB]:
     return db.query(ClientDB).filter(ClientDB.phone_norm == phone_norm).first()
 
 
-def _validate_code(password: str) -> None:
-    pwd = (password or "").strip()
-    if len(pwd) < 4:
-        raise HTTPException(status_code=400, detail="Код должен быть не короче 4 символов")
-    if len(pwd) > 64:
-        raise HTTPException(status_code=400, detail="Код слишком длинный")
+def _login_lock_key(phone_norm: str, request: Request) -> str:
+    ip = request.client.host if request.client else "unknown"
+    return f"client:{phone_norm}:{ip}"
 
 
 def _complete_client_login(db: Session, client: ClientDB, phone_norm: str, request: Request) -> dict:
@@ -99,9 +110,15 @@ def _complete_client_login(db: Session, client: ClientDB, phone_norm: str, reque
 
 
 @router.post("/check-phone")
-@_rate_limit("30/minute")
+@_rate_limit("20/minute")
 def client_check_phone(req: PhoneBody, request: Request, db: Session = Depends(get_db)):
     """NOT_FOUND — регистрация; PASSWORD_REQUIRED — ввод кода."""
+    guard_auth_form(
+        request,
+        website=req.website,
+        form_started_at=req.form_started_at,
+        check_timing=False,
+    )
     try:
         phone_intl, phone_norm = _resolve_phone(req.phone_number)
     except ValueError:
@@ -109,23 +126,26 @@ def client_check_phone(req: PhoneBody, request: Request, db: Session = Depends(g
 
     client = _find_client(db, phone_norm)
     status_value = "PASSWORD_REQUIRED" if client else "NOT_FOUND"
-    out = {"status": status_value, "phone_number": phone_intl}
-    if client:
-        out["client_id"] = client.id
-        out["name"] = client.name
-    return out
+    return {"status": status_value, "phone_number": phone_intl}
 
 
 @router.post("/register")
-@_rate_limit("10/minute")
+@_rate_limit("5/minute")
 def client_register(req: RegisterBody, request: Request, db: Session = Depends(get_db)):
     """Новый клиент: телефон + личный код (мин. 4 символа)."""
+    guard_auth_form(
+        request,
+        website=req.website,
+        form_started_at=req.form_started_at,
+        for_register=True,
+    )
     try:
         phone_intl, phone_norm = _resolve_phone(req.phone_number)
     except ValueError:
         raise HTTPException(status_code=400, detail="Некорректный номер телефона")
 
-    _validate_code(req.password)
+    pwd = validate_password_or_code(req.password, label="Код")
+    safe_name = sanitize_display_name(req.name, fallback=f"Клиент {phone_norm}")
 
     if _find_client(db, phone_norm):
         raise HTTPException(status_code=409, detail="Этот номер уже зарегистрирован. Введите код для входа.")
@@ -133,10 +153,10 @@ def client_register(req: RegisterBody, request: Request, db: Session = Depends(g
     from datetime import datetime
 
     client = ClientDB(
-        name=(req.name or "").strip() or f"Клиент {phone_norm}",
+        name=safe_name,
         phone=phone_intl,
         phone_norm=phone_norm,
-        password_hash=hash_password(req.password.strip()),
+        password_hash=hash_password(pwd),
         created_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
     )
     db.add(client)
@@ -146,21 +166,28 @@ def client_register(req: RegisterBody, request: Request, db: Session = Depends(g
 
 
 @router.post("/login")
-@_rate_limit("20/minute")
+@_rate_limit("15/minute")
 def client_login(req: LoginBody, request: Request, db: Session = Depends(get_db)):
     """Вход по телефону и личному коду."""
+    guard_auth_form(request, website=req.website, form_started_at=req.form_started_at)
     try:
         phone_intl, phone_norm = _resolve_phone(req.phone_number)
     except ValueError:
         raise HTTPException(status_code=400, detail="Некорректный номер телефона")
 
+    lock_key = _login_lock_key(phone_norm, request)
+    assert_not_login_locked(lock_key)
+
     client = _find_client(db, phone_norm)
     if not client:
-        raise HTTPException(status_code=404, detail="Номер не найден. Создайте код для регистрации.")
+        record_login_failure(lock_key)
+        raise HTTPException(status_code=401, detail="Неверный телефон или код")
 
     if not verify_password(req.password, client.password_hash):
-        raise HTTPException(status_code=401, detail="Неверный код")
+        record_login_failure(lock_key)
+        raise HTTPException(status_code=401, detail="Неверный телефон или код")
 
+    clear_login_failures(lock_key)
     return _complete_client_login(db, client, phone_norm, request)
 
 
