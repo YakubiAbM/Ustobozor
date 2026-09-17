@@ -41,8 +41,8 @@ USE_SQLITE = "sqlite" in DATABASE_URL
 # -----------------------------------------------------------------------------
 JWT_SECRET = os.getenv("JWT_SECRET", "change-me-in-production-use-long-secret")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-# Время жизни access-токена (минуты). 43200 = 30 дней — один раз вошёл и не просит снова.
-ACCESS_TOKEN_TTL_MINUTES = _env_int("ACCESS_TOKEN_TTL_MINUTES", 43200)
+# Access: короткий (15–30 мин). Refresh: длиннее, хранится в БД/Redis.
+ACCESS_TOKEN_TTL_MINUTES = _env_int("ACCESS_TOKEN_TTL_MINUTES", 30)
 REFRESH_TOKEN_TTL_DAYS = _env_int("REFRESH_TOKEN_TTL_DAYS", 30)
 
 # -----------------------------------------------------------------------------

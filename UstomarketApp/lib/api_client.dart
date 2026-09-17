@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'constants.dart';
@@ -11,8 +12,10 @@ const _retries = 2;
 const _userAgent = 'UstobozorApp/1.0 (Android)';
 
 void _logApiError(String label, Object e) {
-  // ignore: avoid_print
-  print('API $label failed: $e');
+  if (kDebugMode) {
+    // ignore: avoid_print
+    print('API $label failed: $e');
+  }
 }
 
 /// Исключение с текстом ответа сервера (4xx).
@@ -101,8 +104,10 @@ Future<http.Response> apiGet(
     final r = await _http.get(uri, headers: _mergeHeaders(headers)).timeout(_timeout);
     if ((r.statusCode >= 200 && r.statusCode < 300) ||
         acceptedStatusCodes.contains(r.statusCode)) {
-      // ignore: avoid_print
-      print('API OK GET $path -> ${r.statusCode} (${r.bodyBytes.length} bytes)');
+      if (kDebugMode) {
+        // ignore: avoid_print
+        print('API OK GET $path -> ${r.statusCode} (${r.bodyBytes.length} bytes)');
+      }
       return r;
     }
     if (r.statusCode >= 400 && r.statusCode < 500) {

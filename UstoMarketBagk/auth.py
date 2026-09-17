@@ -102,22 +102,29 @@ def verify_otp_hash(stored_hash: Optional[str], code: str) -> bool:
     return hashlib.sha256(code.encode()).hexdigest() == stored_hash
 
 
-def hash_pin(pin: str) -> str:
-    """Хэш 4-значного PIN для входа в админку."""
-    return hashlib.sha256(pin.encode()).hexdigest()
-
-
-def verify_pin_hash(stored_hash: Optional[str], pin: str) -> bool:
-    """Проверяет PIN по сохранённому хэшу."""
-    if not stored_hash:
-        return False
-    return hashlib.sha256(pin.encode()).hexdigest() == stored_hash
-
-
 try:
     import bcrypt
 except ImportError:
     bcrypt = None  # type: ignore
+
+
+def hash_pin(pin: str) -> str:
+    """Bcrypt-хэш 4-значного PIN для входа в админку."""
+    if bcrypt is None:
+        raise RuntimeError("bcrypt is required for PIN hashing")
+    return bcrypt.hashpw(pin.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_pin_hash(stored_hash: Optional[str], pin: str) -> bool:
+    """Проверяет PIN: bcrypt (новые) или legacy SHA-256."""
+    if not stored_hash or not pin:
+        return False
+    if stored_hash.startswith("$2"):
+        try:
+            return bcrypt.checkpw(pin.encode("utf-8"), stored_hash.encode("utf-8"))
+        except Exception:
+            return False
+    return hashlib.sha256(pin.encode()).hexdigest() == stored_hash
 
 
 def hash_password(password: str) -> str:

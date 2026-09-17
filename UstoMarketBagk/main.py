@@ -261,6 +261,7 @@ def _get_superadmin_credentials():
 
 
 @app.post("/admin/login")
+@_apply_rate_limit("10/minute")
 async def admin_login_submit(request: Request, db: Session = Depends(get_db)):
     """Вход: супер-админ по .env или сотрудник (админ из раздела «Админы») по номеру и паролю (PIN)."""
     try:
@@ -311,6 +312,7 @@ async def admin_login_submit(request: Request, db: Session = Depends(get_db)):
 
 
 @app.post("/admin/login/check_phone")
+@_apply_rate_limit("20/minute")
 async def admin_login_check_phone(
     request: Request,
     db: Session = Depends(get_db),
@@ -337,6 +339,7 @@ async def admin_login_check_phone(
 
 
 @app.post("/admin/login/verify_pin")
+@_apply_rate_limit("10/minute")
 async def admin_login_verify_pin(
     request: Request,
     db: Session = Depends(get_db),
