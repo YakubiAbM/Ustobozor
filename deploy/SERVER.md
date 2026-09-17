@@ -3,15 +3,15 @@
 ## Base URL (Flutter)
 
 ```
-https://api.ustobozor.tj
+https://api.ustomarket.tj
 ```
 
 | Сервис   | URL |
 |----------|-----|
-| API      | https://api.ustobozor.tj |
-| Web/PWA  | https://api.ustobozor.tj/web/ |
-| Админка  | https://api.ustobozor.tj/admin/login |
-| Swagger  | https://api.ustobozor.tj/docs |
+| API      | https://api.ustomarket.tj |
+| Web/PWA  | https://api.ustomarket.tj/web/ |
+| Админка  | https://api.ustomarket.tj/admin/login |
+| Swagger  | https://api.ustomarket.tj/docs |
 
 ---
 
@@ -26,7 +26,7 @@ https://api.ustobozor.tj
 Проверка (через 5–30 мин):
 
 ```bash
-dig +short api.ustobozor.tj @8.8.8.8
+dig +short api.ustomarket.tj @8.8.8.8
 # должно вернуть: 185.185.142.229
 ```
 
@@ -54,7 +54,7 @@ bash /root/setup_https_api.sh
 `UstomarketApp/lib/constants.dart`:
 
 ```dart
-const String baseUrl = 'https://api.ustobozor.tj';
+const String baseUrl = 'https://api.ustomarket.tj';
 ```
 
 ```powershell
@@ -68,7 +68,7 @@ flutter run
 
 ## Критерии приёмки
 
-- [ ] `https://api.ustobozor.tj/products` открывается в браузере телефона
+- [ ] `https://api.ustomarket.tj/products` открывается в браузере телефона
 - [ ] Приложение загружает каталог без `Cleartext HTTP` / `TimeoutException`
 - [ ] В логах: `API OK GET /products -> 200`
 

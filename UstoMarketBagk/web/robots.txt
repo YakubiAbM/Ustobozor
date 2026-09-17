@@ -1,5 +1,5 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://ustobozor.tj/
-Sitemap: https://ustobozor.tj/privacy.html
+Sitemap: https://ustomarket.tj/
+Sitemap: https://ustomarket.tj/privacy.html

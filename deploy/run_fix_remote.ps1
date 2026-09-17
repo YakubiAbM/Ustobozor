@@ -16,4 +16,4 @@ ssh -o ConnectTimeout=30 $Server $remoteCmd
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
 Write-Host "==> Check from PC"
-& curl.exe -sI --max-time 15 "https://ustobozor.tj/products?limit=1"
+& curl.exe -sI --max-time 15 "https://ustomarket.tj/products?limit=1"

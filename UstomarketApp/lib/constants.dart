@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 // === КОНФИГУРАЦИЯ СЕРВЕРА ===
-/// `true` — локальный backend. `false` — prod `https://ustobozor.tj`.
+/// `true` — локальный backend. `false` — prod `https://ustomarket.tj`.
 /// Релиз: `flutter build apk --dart-define=USE_LOCAL_API=false`
 const bool kUseLocalApi = bool.fromEnvironment(
   'USE_LOCAL_API',
@@ -12,7 +12,7 @@ const bool kUseLocalApi = bool.fromEnvironment(
 );
 
 /// Prod API.
-const String kProdBaseUrl = 'https://ustobozor.tj';
+const String kProdBaseUrl = 'https://ustomarket.tj';
 
 /// Порт локального uvicorn (`python -m uvicorn main:app --host 0.0.0.0 --port 8000`).
 const int kLocalApiPort = 8000;

@@ -1,20 +1,20 @@
-# Домен ustobozor.tj (бренд Ustomarket) — пошаговая настройка
+# Домен ustomarket.tj (бренд Ustomarket) — пошаговая настройка
 
 После настройки:
 
 | URL | Что открывается |
 |-----|-----------------|
-| `https://ustobozor.tj/` | Интернет-магазин (PWA) |
-| `https://ustobozor.tj/admin` | Веб-админка |
-| `https://ustobozor.tj/admin/login` | Вход в админку |
-| `https://ustobozor.tj/products` | API товаров |
-| `https://ustobozor.tj/auth/login` | API авторизации мастеров |
+| `https://ustomarket.tj/` | Интернет-магазин (PWA) |
+| `https://ustomarket.tj/admin` | Веб-админка |
+| `https://ustomarket.tj/admin/login` | Вход в админку |
+| `https://ustomarket.tj/products` | API товаров |
+| `https://ustomarket.tj/auth/login` | API авторизации мастеров |
 
 ---
 
 ## Шаг 1. DNS у регистратора домена
 
-В панели, где купили **ustobozor.tj**, добавьте записи:
+В панели, где купили **ustomarket.tj**, добавьте записи:
 
 | Тип | Имя | Значение |
 |-----|-----|----------|
@@ -24,7 +24,7 @@
 Подождите 5–30 минут. Проверка с ПК:
 
 ```powershell
-nslookup ustobozor.tj
+nslookup ustomarket.tj
 ```
 
 Должен показать IP сервера.
@@ -55,17 +55,17 @@ git pull origin main
 Создайте папку и положите файлы от регистратора:
 
 ```bash
-mkdir -p /etc/ssl/ustobozor.tj
-chmod 700 /etc/ssl/ustobozor.tj
+mkdir -p /etc/ssl/ustomarket.tj
+chmod 700 /etc/ssl/ustomarket.tj
 ```
 
 Скопируйте (имена у регистратора могут отличаться):
 
 ```bash
 # Пример:
-cp /path/to/certificate.crt /etc/ssl/ustobozor.tj/fullchain.pem
-cp /path/to/private.key      /etc/ssl/ustobozor.tj/privkey.pem
-chmod 600 /etc/ssl/ustobozor.tj/privkey.pem
+cp /path/to/certificate.crt /etc/ssl/ustomarket.tj/fullchain.pem
+cp /path/to/private.key      /etc/ssl/ustomarket.tj/privkey.pem
+chmod 600 /etc/ssl/ustomarket.tj/privkey.pem
 ```
 
 **fullchain.pem** = ваш сертификат + промежуточные CA (склеенные в один файл).
@@ -94,15 +94,15 @@ bash scripts/setup_ustomarket_domain.sh
 ## Шаг 6. Проверка
 
 ```bash
-curl -sI https://ustobozor.tj/ | head -5
-curl -sI https://ustobozor.tj/admin/login | head -5
-curl -s "https://ustobozor.tj/products?limit=1" | head -c 100
+curl -sI https://ustomarket.tj/ | head -5
+curl -sI https://ustomarket.tj/admin/login | head -5
+curl -s "https://ustomarket.tj/products?limit=1" | head -c 100
 ```
 
 В браузере:
 
-1. `https://ustobozor.tj` — магазин  
-2. `https://ustobozor.tj/admin` — админка  
+1. `https://ustomarket.tj` — магазин  
+2. `https://ustomarket.tj/admin` — админка  
 3. Замок HTTPS в адресной строке без ошибок  
 
 ---
@@ -111,8 +111,8 @@ curl -s "https://ustobozor.tj/products?limit=1" | head -c 100
 
 На ПК уже обновлены `baseUrl`:
 
-- `UstomarketApp/lib/constants.dart` → `https://ustobozor.tj`
-- `admin_app/lib/constants.dart` → `https://ustobozor.tj`
+- `UstomarketApp/lib/constants.dart` → `https://ustomarket.tj`
+- `admin_app/lib/constants.dart` → `https://ustomarket.tj`
 
 Пересоберите и установите APK:
 
@@ -131,7 +131,7 @@ flutter build apk
 | ERR_SSL | Проверьте пути к `.pem` в nginx |
 | 502 Bad Gateway | `systemctl status ustomarket` — uvicorn на :8000 |
 | Старый /web/ | Редирект на `/` уже в коде |
-| CORS в браузере | В `.env`: `ALLOWED_ORIGINS=https://ustobozor.tj` |
+| CORS в браузере | В `.env`: `ALLOWED_ORIGINS=https://ustomarket.tj` |
 
 Логи:
 

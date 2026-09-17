@@ -1,10 +1,10 @@
 #!/bin/bash
-# HTTPS для api.ustobozor.tj (Let's Encrypt + Nginx → uvicorn :8000)
+# HTTPS для api.ustomarket.tj (Let's Encrypt + Nginx → uvicorn :8000)
 # Запуск на VPS: bash setup_https_api.sh
 set -e
 export DEBIAN_FRONTEND=noninteractive
 
-DOMAIN="api.ustobozor.tj"
+DOMAIN="api.ustomarket.tj"
 APP_PORT=8000
 SERVER_IP="185.185.142.229"
 
@@ -12,7 +12,7 @@ echo "=== 1. DNS check ==="
 RESOLVED=$(dig +short "$DOMAIN" @8.8.8.8 | tail -1)
 if [ -z "$RESOLVED" ]; then
   echo "ERROR: $DOMAIN не резолвится."
-  echo "Добавьте A-запись: api.ustobozor.tj -> $SERVER_IP"
+  echo "Добавьте A-запись: api.ustomarket.tj -> $SERVER_IP"
   echo "Подождите 5–30 мин и запустите скрипт снова."
   exit 1
 fi

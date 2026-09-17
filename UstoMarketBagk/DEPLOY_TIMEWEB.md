@@ -12,8 +12,8 @@
 ### 2. Клонирование проекта
 
 ```bash
-git clone <ВАШ_REPO_URL> ustobozor
-cd ustobozor
+git clone <ВАШ_REPO_URL> ustomarket
+cd ustomarket
 ```
 
 Скопируйте файл `.env` с рабочего окружения (локальной машины) на сервер в корень проекта и при необходимости поправьте:
@@ -70,7 +70,7 @@ docker compose up -d --build app
 На сервере:
 
 ```bash
-cd ustobozor
+cd ustomarket
 git pull
 docker compose up -d --build
 ```

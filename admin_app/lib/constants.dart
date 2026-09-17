@@ -6,7 +6,7 @@ const bool kUseLocalApi = bool.fromEnvironment(
   'USE_LOCAL_API',
   defaultValue: true,
 );
-const String kProdBaseUrl = 'https://ustobozor.tj';
+const String kProdBaseUrl = 'https://ustomarket.tj';
 const String kLocalBaseUrl = 'http://127.0.0.1:8000';
 
 /// Тот же сервер, что и клиентское приложение.

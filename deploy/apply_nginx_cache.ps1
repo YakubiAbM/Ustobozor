@@ -1,4 +1,4 @@
-# Apply nginx cache config for ustobozor.tj
+# Apply nginx cache config for ustomarket.tj
 $ErrorActionPreference = "Stop"
 $Server = "root@185.185.142.229"
 $RemoteConfig = "/etc/nginx/sites-available/ustomarket"
@@ -25,8 +25,8 @@ ssh -o ConnectTimeout=30 -o BatchMode=yes $Server "systemctl reload nginx && sys
 
 Write-Host "==> Verify Cache-Control headers"
 ssh -o ConnectTimeout=30 -o BatchMode=yes $Server @"
-curl -sSI http://127.0.0.1/app.css?v=29 -H 'Host: ustobozor.tj' | grep -iE 'HTTP/|cache-control|expires'
-curl -sSI http://127.0.0.1/static/images/ -H 'Host: ustobozor.tj' | head -3
+curl -sSI http://127.0.0.1/app.css?v=29 -H 'Host: ustomarket.tj' | grep -iE 'HTTP/|cache-control|expires'
+curl -sSI http://127.0.0.1/static/images/ -H 'Host: ustomarket.tj' | head -3
 "@
 
 Write-Host "Done."

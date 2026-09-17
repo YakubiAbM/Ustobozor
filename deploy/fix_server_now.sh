@@ -3,7 +3,7 @@
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/root/backendGreen}"
-DOMAIN="ustobozor.tj"
+DOMAIN="ustomarket.tj"
 NGINX_SITE="/etc/nginx/sites-available/ustomarket"
 
 log() { echo "==> $*"; }

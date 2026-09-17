@@ -53,8 +53,8 @@ JWT_SECRET={jwt}
 ACCESS_TOKEN_TTL_MINUTES=30
 REFRESH_TOKEN_TTL_DAYS=30
 
-ALLOWED_ORIGINS=https://ustobozor.tj,https://www.ustobozor.tj
-PUBLIC_BASE_URL=https://ustobozor.tj
+ALLOWED_ORIGINS=https://ustomarket.tj,https://www.ustomarket.tj
+PUBLIC_BASE_URL=https://ustomarket.tj
 """
     OUT.write_text(body, encoding="utf-8")
     print(f"Wrote {OUT}")

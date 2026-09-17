@@ -3,8 +3,8 @@
 #   sudo bash /home/ubuntu/Ustomarket/deploy/enable_https.sh
 set -euo pipefail
 
-DOMAIN=ustobozor.tj
-EMAIL="${CERTBOT_EMAIL:-admin@ustobozor.tj}"
+DOMAIN=ustomarket.tj
+EMAIL="${CERTBOT_EMAIL:-admin@ustomarket.tj}"
 
 apt-get update -qq
 apt-get install -y certbot python3-certbot-nginx
