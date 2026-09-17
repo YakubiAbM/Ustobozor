@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
 /// `true` — локальный backend. `false` — prod.
-const bool kUseLocalApi = true;
+/// Релиз: `flutter build apk --dart-define=USE_LOCAL_API=false`
+const bool kUseLocalApi = bool.fromEnvironment(
+  'USE_LOCAL_API',
+  defaultValue: true,
+);
 const String kProdBaseUrl = 'https://ustobozor.tj';
 const String kLocalBaseUrl = 'http://127.0.0.1:8000';
 

@@ -4,9 +4,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 // === КОНФИГУРАЦИЯ СЕРВЕРА ===
-/// `true` — ходить на локальный backend (localhost / эмулятор).
-/// `false` — prod `https://ustobozor.tj`.
-const bool kUseLocalApi = true;
+/// `true` — локальный backend. `false` — prod `https://ustobozor.tj`.
+/// Релиз: `flutter build apk --dart-define=USE_LOCAL_API=false`
+const bool kUseLocalApi = bool.fromEnvironment(
+  'USE_LOCAL_API',
+  defaultValue: true,
+);
 
 /// Prod API.
 const String kProdBaseUrl = 'https://ustobozor.tj';
