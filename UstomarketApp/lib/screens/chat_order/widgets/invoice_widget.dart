@@ -4,7 +4,7 @@ import '../../../constants.dart';
 import '../../../widgets/app_cached_image.dart';
 import '../models/chat_response_models.dart';
 
-/// Электронная накладная Ustobozor (TZ §4.2): без вложенного скролла.
+/// Электронная накладная Ustomarket (TZ §4.2): без вложенного скролла.
 class InvoiceWidget extends StatelessWidget {
   final Cart cart;
   final String invoiceTitle;
@@ -72,7 +72,7 @@ class InvoiceWidget extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Электронная накладная Ustobozor',
+                        'Электронная накладная Ustomarket',
                         style: TextStyle(
                           fontSize: 13,
                           color: theme.colorScheme.onSurface.withOpacity(0.7),

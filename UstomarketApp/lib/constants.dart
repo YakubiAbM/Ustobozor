@@ -62,7 +62,7 @@ const bool kMasterReviewsEnabled = true;
 const String uploadsPath = 'static/uploads';
 const String kAppPlaceholderAssetPath = 'assets/icon (2).png';
 
-// === ЦВЕТА Ustobozor ===
+// === ЦВЕТА Ustomarket ===
 class AppColors {
   // Фоны
   static const Color bg = Color(0xFF06070C);

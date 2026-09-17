@@ -1,7 +1,7 @@
 services:
   app:
     build: .
-    container_name: ustobozor-app
+    container_name: ustomarket-app
     env_file:
       - .env
     environment:
@@ -23,7 +23,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: ustobozor-redis
+    container_name: ustomarket-redis
     restart: always
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -33,7 +33,7 @@ services:
 
   db:
     image: postgres:16
-    container_name: ustobozor-db
+    container_name: ustomarket-db
     restart: always
     environment:
       - POSTGRES_DB=market

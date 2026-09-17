@@ -161,7 +161,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
               child: Row(
                 children: [
                   Text(
-                    'Ustobozor',
+                    'Ustomarket',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,

@@ -1,9 +1,9 @@
-"""Локальный сервер PWA + прокси API на khushrang.tj для тестов."""
+"""Локальный сервер PWA + прокси API на prod (ustobozor.tj) для тестов."""
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import urllib.request
 import os
 
-API_ORIGIN = "https://khushrang.tj"
+API_ORIGIN = "https://ustobozor.tj"
 WEB_DIR = os.path.dirname(os.path.abspath(__file__))
 PORT = 8765
 

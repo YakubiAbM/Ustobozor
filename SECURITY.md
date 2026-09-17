@@ -1,4 +1,4 @@
-# Ustobozor — стандарты безопасности
+# Ustomarket — стандарты безопасности
 
 ## 1. GitHub — что нельзя коммитить
 
@@ -50,8 +50,8 @@
 ## Быстрые команды на сервере
 
 ```bash
-sudo bash /home/ubuntu/Ustobozor/deploy/harden_server.sh
-sudo bash /home/ubuntu/Ustobozor/deploy/enable_https.sh   # после DNS
+sudo bash /home/ubuntu/Ustomarket/deploy/harden_server.sh
+sudo bash /home/ubuntu/Ustomarket/deploy/enable_https.sh   # после DNS
 ```
 
 Релиз приложения:

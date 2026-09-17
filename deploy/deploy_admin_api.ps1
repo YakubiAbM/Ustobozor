@@ -16,8 +16,8 @@ scp -o ConnectTimeout=30 -o BatchMode=yes `
   "${Server}:${RemoteDir}/"
 if ($LASTEXITCODE -ne 0) { throw "SCP failed (SSH timeout?). Connect manually: ssh $Server" }
 
-Write-Host "==> Restart ustobozor"
-Invoke-Remote "systemctl restart ustobozor && sleep 2 && systemctl is-active ustobozor"
+Write-Host "==> Restart ustomarket"
+Invoke-Remote "systemctl restart ustomarket && sleep 2 && systemctl is-active ustomarket"
 
 Write-Host "==> Verify on server"
 Invoke-Remote "curl -sS -o /dev/null -w 'dashboard:%{http_code}\n' http://127.0.0.1:8000/admin/api/dashboard"

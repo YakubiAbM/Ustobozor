@@ -39,9 +39,9 @@ echo "=== 3. Migrations ==="
 ./venv/bin/python migrate_auth.py
 
 echo "=== 4. systemd service ==="
-cat > /etc/systemd/system/ustobozor.service << 'UNIT'
+cat > /etc/systemd/system/ustomarket.service << 'UNIT'
 [Unit]
-Description=Ustobozor FastAPI
+Description=Ustomarket FastAPI
 After=network.target postgresql.service redis-server.service
 
 [Service]
@@ -58,10 +58,10 @@ WantedBy=multi-user.target
 UNIT
 
 systemctl daemon-reload
-systemctl enable ustobozor
-systemctl restart ustobozor
+systemctl enable ustomarket
+systemctl restart ustomarket
 
 sleep 3
-systemctl is-active ustobozor
+systemctl is-active ustomarket
 curl -sS -o /dev/null -w "Web HTTP: %{http_code}\n" http://127.0.0.1:8000/web/ || true
 echo "Done: http://185.185.142.229:8000/web/"

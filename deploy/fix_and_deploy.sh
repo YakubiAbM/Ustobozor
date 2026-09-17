@@ -21,7 +21,7 @@ cat > /root/backendGreen/docker-compose.yml << 'COMPOSE'
 services:
   app:
     build: .
-    container_name: ustobozor-app
+    container_name: ustomarket-app
     network_mode: host
     env_file:
       - .env

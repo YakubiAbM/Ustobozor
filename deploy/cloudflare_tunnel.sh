@@ -7,7 +7,7 @@ set -e
 
 APP_URL="http://127.0.0.1:8000"
 CF_BIN="/usr/local/bin/cloudflared"
-SERVICE_NAME="cloudflared-ustobozor"
+SERVICE_NAME="cloudflared-ustomarket"
 
 cmd_check() {
   echo "=== cloudflared ==="
@@ -25,7 +25,7 @@ cmd_check() {
   ls -la ~/.cloudflared/ 2>/dev/null || echo "~/.cloudflared/ — нет"
   echo ""
   echo "=== API локально ==="
-  curl -sS -o /dev/null -w "ustobozor :8000 -> %{http_code}\n" "$APP_URL/products" || echo "API не отвечает на :8000"
+  curl -sS -o /dev/null -w "ustomarket :8000 -> %{http_code}\n" "$APP_URL/products" || echo "API не отвечает на :8000"
 }
 
 cmd_install_bin() {
@@ -61,8 +61,8 @@ cmd_install() {
   cmd_install_bin
   cat > /etc/systemd/system/${SERVICE_NAME}.service << UNIT
 [Unit]
-Description=Cloudflare Quick Tunnel to Ustobozor API
-After=network.target ustobozor.service
+Description=Cloudflare Quick Tunnel to Ustomarket API
+After=network.target ustomarket.service
 
 [Service]
 Type=simple

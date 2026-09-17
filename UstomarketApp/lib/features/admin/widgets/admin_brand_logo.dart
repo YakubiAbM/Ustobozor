@@ -37,7 +37,7 @@ class AdminBrandLogo extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'Ustobozor',
+          'Ustomarket',
           style: GoogleFonts.montserrat(
             fontSize: 26,
             fontWeight: FontWeight.w800,

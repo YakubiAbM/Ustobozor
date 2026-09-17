@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Hardening VPS after deploy. Run on server as ubuntu (with sudo):
-#   sudo bash /home/ubuntu/Ustobozor/deploy/harden_server.sh
+#   sudo bash /home/ubuntu/Ustomarket/deploy/harden_server.sh
 set -euo pipefail
 
-ENV_FILE="${ENV_FILE:-/home/ubuntu/Ustobozor/UstoMarketBagk/.env}"
+ENV_FILE="${ENV_FILE:-/home/ubuntu/Ustomarket/UstoMarketBagk/.env}"
 
 echo "=== .env permissions ==="
 if [[ -f "$ENV_FILE" ]]; then

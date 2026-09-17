@@ -1,5 +1,5 @@
 """
-Точка входа: FastAPI-приложение Ustobozor.
+Точка входа: FastAPI-приложение Ustomarket.
 Публичное API: товары, бренды, мастера, заказы (с авторизацией), чат-бот.
 Админка и auth вынесены в роутеры (admin_routes, auth_routes).
 """
@@ -115,7 +115,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 @app.get("/download-apk")
-def download_apk(file: str = Query("Ustobozor.apk", description="Имя APK-файла из папки web/")):
+def download_apk(file: str = Query("Ustomarket.apk", description="Имя APK-файла из папки web/")):
     """
     Отдаёт APK как attachment для корректного скачивания в браузере/WebView.
     """

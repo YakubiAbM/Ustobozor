@@ -9,7 +9,7 @@ apt-get install -y unzip curl ca-certificates
 if [ ! -d /root/backendGreen/main.py ] && [ ! -f /root/backendGreen/main.py ]; then
   rm -rf /root/backendGreen
   mkdir -p /root/backendGreen
-  unzip -oq /root/ustobozor-lite.zip -d /root/backendGreen || true
+  unzip -oq /root/ustomarket-lite.zip -d /root/backendGreen || true
 fi
 
 bash /root/server_deploy.sh

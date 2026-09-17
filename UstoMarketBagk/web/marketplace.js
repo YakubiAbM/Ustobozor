@@ -1,5 +1,5 @@
 /**
- * Ustobozor Web — marketplace layer (Avito-style) поверх app.js
+ * Ustomarket Web — marketplace layer (Avito-style) поверх app.js
  * Переопределяет главную, шапку, каталог мастеров и форму заявки.
  */
 (function () {
@@ -385,7 +385,7 @@
     var orders = state.openRequests || [];
     return (
       '<div class="home-screen">' +
-      '<div class="home-brand mobile-only">Ustobozor.tj</div>' +
+      '<div class="home-brand mobile-only">Ustomarket</div>' +
       '<div class="home-search-mobile mobile-only">' +
       renderSearchBar() +
       "</div>" +
@@ -669,7 +669,7 @@
       body +
       "</div>" +
       (isMasterUser()
-        ? '<p class="hint" style="margin-top:14px">Мастерам: лента заказов и CRM — в мобильном приложении Ustobozor. <a href="/download-apk">Скачать APK</a></p>'
+        ? '<p class="hint" style="margin-top:14px">Мастерам: лента заказов и CRM — в мобильном приложении Ustomarket. <a href="/download-apk">Скачать APK</a></p>'
         : "") +
       "</div>"
     );

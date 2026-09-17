@@ -1429,7 +1429,7 @@ function renderDesktopFooter() {
     <footer class="desk-footer">
       <div class="desk-footer-inner">
         <div class="desk-footer-brand">
-          <div class="desk-footer-logo">${icon("package", "", 20)} Ustobozor</div>
+          <div class="desk-footer-logo">${icon("package", "", 20)} Ustomarket</div>
           <p class="desk-footer-tagline">Строительные материалы и мастера — минимум лишнего, максимум удобства.</p>
         </div>
         <div class="desk-footer-col">
@@ -1452,7 +1452,7 @@ function renderDesktopFooter() {
           <span class="desk-footer-muted">Поддержка в WhatsApp</span>
         </div>
       </div>
-      <div class="desk-footer-bottom">© ${new Date().getFullYear()} Ustobozor</div>
+      <div class="desk-footer-bottom">© ${new Date().getFullYear()} Ustomarket</div>
     </footer>
   `;
 }
@@ -1550,7 +1550,7 @@ function renderHeader() {
     return `<div class="header-with-back"><button class="back-btn" data-act="profile-back" aria-label="Назад">${icon("chevronLeft", "", 18)}</button><span class="header-title">Профиль</span></div>`;
   }
   if (s === "profile") {
-    return `<div class="brand-row"><div class="brand">Ustobozor</div></div>`;
+    return `<div class="brand-row"><div class="brand">Ustomarket</div></div>`;
   }
   if (s === "orders") return `<div class="header-with-back"><button class="back-btn" data-act="back" aria-label="Назад">${icon("chevronLeft", "", 18)}</button><span class="header-title">Мои заказы</span></div>`;
   if (s === "notifications") return `<div class="header-with-back"><button class="back-btn" data-act="back" aria-label="Назад">${icon("chevronLeft", "", 18)}</button><span class="header-title">Уведомления ${state.profileUnreadCount > 0 ? "(" + state.profileUnreadCount + ")" : ""}</span></div>`;
@@ -1587,7 +1587,7 @@ function renderHeader() {
   if (s === "publish") {
     return `<div class="brand-row"><div class="brand">Публикация</div></div>`;
   }
-  return `<div class="brand-row"><div class="brand">Ustobozor</div></div>${renderSearchBar()}`;
+  return `<div class="brand-row"><div class="brand">Ustomarket</div></div>${renderSearchBar()}`;
 }
 
 /* ===== CALCULATOR ===== */
@@ -2865,7 +2865,7 @@ function renderProfileContentPanel() {
     return `
       <div class="profile-projects-panel">
         <div class="section-title">Мои проекты</div>
-        <div class="profile-content-empty">Сохранённые строительные объекты появятся здесь. Откройте приложение Ustobozor для полного функционала проектов.</div>
+        <div class="profile-content-empty">Сохранённые строительные объекты появятся здесь. Откройте приложение Ustomarket для полного функционала проектов.</div>
       </div>
     `;
   }

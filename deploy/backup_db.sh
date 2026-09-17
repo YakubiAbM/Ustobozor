@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Daily Postgres backup from Docker. Install cron on VPS:
-#   0 3 * * * /home/ubuntu/Ustobozor/deploy/backup_db.sh >> /var/log/ustobozor-backup.log 2>&1
+#   0 3 * * * /home/ubuntu/Ustomarket/deploy/backup_db.sh >> /var/log/ustomarket-backup.log 2>&1
 set -euo pipefail
 
-BACKUP_DIR="${BACKUP_DIR:-/home/ubuntu/backups/ustobozor}"
-COMPOSE_FILE="${COMPOSE_FILE:-/home/ubuntu/Ustobozor/UstoMarketBagk/docker-compose.yml}"
+BACKUP_DIR="${BACKUP_DIR:-/home/ubuntu/backups/ustomarket}"
+COMPOSE_FILE="${COMPOSE_FILE:-/home/ubuntu/Ustomarket/UstoMarketBagk/docker-compose.yml}"
 KEEP_DAYS="${KEEP_DAYS:-14}"
 
 mkdir -p "$BACKUP_DIR"

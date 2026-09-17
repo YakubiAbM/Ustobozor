@@ -55,7 +55,7 @@ class _SplashScreenState extends State<SplashScreen> {
               _buildLogo(),
               const SizedBox(height: 24),
               Text(
-                'Ustobozor',
+                'Ustomarket',
                 style: TextStyle(
                   color: textColor,
                   fontSize: 26,

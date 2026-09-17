@@ -12,8 +12,8 @@ scp -o ConnectTimeout=30 \
   "$LOCAL_BAGK/main.py" \
   "$SERVER:$REMOTE_DIR/"
 
-echo "==> Restart ustobozor"
-ssh -o ConnectTimeout=30 "$SERVER" "systemctl restart ustobozor && sleep 2 && systemctl is-active ustobozor"
+echo "==> Restart ustomarket"
+ssh -o ConnectTimeout=30 "$SERVER" "systemctl restart ustomarket && sleep 2 && systemctl is-active ustomarket"
 
 echo "==> Verify API"
 ssh -o ConnectTimeout=30 "$SERVER" "curl -sS -o /dev/null -w 'local:%{http_code}\n' http://127.0.0.1:8000/products"

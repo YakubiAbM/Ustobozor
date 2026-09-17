@@ -1,5 +1,5 @@
 """
-JSON API для мобильного приложения Ustobozor Admin.
+JSON API для мобильного приложения Ustomarket Admin.
 Авторизация: cookie superadmin_session или access_token (как в веб-админке).
 """
 

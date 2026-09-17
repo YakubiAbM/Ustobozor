@@ -10,7 +10,7 @@ const String kSplashAsset = 'assets/icon (2).png';
 
 const bool kMasterPointsEnabled = app.kMasterPointsEnabled;
 
-/// Фирменные цвета Ustobozor (янтарь) — как в основном приложении.
+/// Фирменные цвета Ustomarket (янтарь) — как в основном приложении.
 class AppColors {
   static const Color bg = app.AppColors.bg;
   static const Color card = app.AppColors.cardBg;

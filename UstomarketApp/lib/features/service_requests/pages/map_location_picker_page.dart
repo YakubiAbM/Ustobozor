@@ -120,7 +120,7 @@ class _MapLocationPickerPageState extends State<MapLocationPickerPage> {
             children: [
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'tj.ustobozor.app',
+                userAgentPackageName: 'tj.ustomarket.app',
               ),
             ],
           ),

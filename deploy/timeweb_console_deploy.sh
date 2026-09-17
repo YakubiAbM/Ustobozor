@@ -1,10 +1,10 @@
 #!/bin/bash
-# Ustobozor — деплой через консоль Timeweb (VNC)
-# 1) Загрузите ustobozor-backend.zip в /root/ через файловый менеджер Timeweb
+# Ustomarket — деплой через консоль Timeweb (VNC)
+# 1) Загрузите ustomarket-backend.zip в /root/ через файловый менеджер Timeweb
 # 2) Вставьте в консоль: bash /root/timeweb_console_deploy.sh
 
 set -e
-ZIP="/root/ustobozor-backend.zip"
+ZIP="/root/ustomarket-backend.zip"
 DIR="/root/backendGreen"
 
 echo "=== 1. Docker ==="

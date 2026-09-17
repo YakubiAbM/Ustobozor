@@ -29,7 +29,7 @@ flutter clean && flutter pub get && flutter run
 
 ```bash
 bash /root/cloudflare_tunnel.sh install
-journalctl -u cloudflared-ustobozor -f
+journalctl -u cloudflared-ustomarket -f
 ```
 
 Quick Tunnel URL меняется после перезапуска. Для постоянного домена — named tunnel в Cloudflare Dashboard.

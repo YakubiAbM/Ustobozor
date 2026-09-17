@@ -61,7 +61,7 @@
 }
 
 :root{
-  /* Ustobozor — как в мобильном приложении */
+  /* Ustomarket — как в мобильном приложении */
   --brand:#F59E0B;
   --brand-hover:#D97706;
   --brand-soft:rgba(245,158,11,.10);
@@ -2194,7 +2194,7 @@ html.theme-light .about-card,html.theme-light .about-social-row{background:rgba(
   .calc-page-actions{flex-direction:row;max-width:640px}
   .calc-chips{flex-wrap:wrap;overflow:visible}
 }
-/* ===== Ustobozor Marketplace (Avito-style) ===== */
+/* ===== Ustomarket Marketplace (Avito-style) ===== */
 .desk-logo-text{font-family:Montserrat,Inter,sans-serif;font-weight:800;letter-spacing:-.02em}
 .desk-logo-text .tj{color:var(--text-primary)}
 .desk-logo-text .brand{color:var(--brand-bright)}

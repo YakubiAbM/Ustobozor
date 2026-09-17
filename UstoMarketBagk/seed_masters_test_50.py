@@ -55,7 +55,7 @@ PROFESSIONS: dict[str, dict] = {
             {"name": "Монтаж водонагревателя", "price": 120, "unit": "шт"},
         ],
         "desc": "Сантехника любой сложности. Выезд в день обращения.",
-        "photo_seed": "ustobozor-plumber",
+        "photo_seed": "ustomarket-plumber",
     },
     "Электрик": {
         "services": [
@@ -67,7 +67,7 @@ PROFESSIONS: dict[str, dict] = {
             {"name": "Монтаж автоматов", "price": 25, "unit": "шт"},
         ],
         "desc": "Электромонтаж в квартирах и домах. Сертифицированный мастер.",
-        "photo_seed": "ustobozor-electric",
+        "photo_seed": "ustomarket-electric",
     },
     "Маляр-Штукатур": {
         "services": [
@@ -79,7 +79,7 @@ PROFESSIONS: dict[str, dict] = {
             {"name": "Декоративная штукатурка", "price": 55, "unit": "кв.м"},
         ],
         "desc": "Ровные стены и аккуратная отделка. Свой инструмент и материалы по запросу.",
-        "photo_seed": "ustobozor-painter",
+        "photo_seed": "ustomarket-painter",
     },
     "Плиточник": {
         "services": [
@@ -91,7 +91,7 @@ PROFESSIONS: dict[str, dict] = {
             {"name": "Мозаика", "price": 90, "unit": "кв.м"},
         ],
         "desc": "Кафель, керамогранит, мозаика. Гарантия на укладку.",
-        "photo_seed": "ustobozor-tiler",
+        "photo_seed": "ustomarket-tiler",
     },
     "Сварщик": {
         "services": [
@@ -102,7 +102,7 @@ PROFESSIONS: dict[str, dict] = {
             {"name": "Ремонт металлоконструкций", "price": 120, "unit": "услуга"},
         ],
         "desc": "Сварочные работы, металлоконструкции, заборы и навесы.",
-        "photo_seed": "ustobozor-welder",
+        "photo_seed": "ustomarket-welder",
     },
     "Плотник": {
         "services": [
@@ -113,7 +113,7 @@ PROFESSIONS: dict[str, dict] = {
             {"name": "Установка окон", "price": 200, "unit": "шт"},
         ],
         "desc": "Двери, полы, мебель. Точные замеры и аккуратный монтаж.",
-        "photo_seed": "ustobozor-carpenter",
+        "photo_seed": "ustomarket-carpenter",
     },
     "Кровельщик": {
         "services": [
@@ -123,7 +123,7 @@ PROFESSIONS: dict[str, dict] = {
             {"name": "Монтаж водостоков", "price": 25, "unit": "м"},
         ],
         "desc": "Кровельные работы, утепление, водосточные системы.",
-        "photo_seed": "ustobozor-roofer",
+        "photo_seed": "ustomarket-roofer",
     },
     "Мастер по ГКЛ": {
         "services": [
@@ -133,7 +133,7 @@ PROFESSIONS: dict[str, dict] = {
             {"name": "Шумоизоляция", "price": 25, "unit": "кв.м"},
         ],
         "desc": "Перегородки, потолки, ниши из гипсокартона.",
-        "photo_seed": "ustobozor-drywall",
+        "photo_seed": "ustomarket-drywall",
     },
     "Слесарь": {
         "services": [
@@ -143,7 +143,7 @@ PROFESSIONS: dict[str, dict] = {
             {"name": "Мелкий ремонт", "price": 50, "unit": "час"},
         ],
         "desc": "Слесарные работы, замки, металлоизделия.",
-        "photo_seed": "ustobozor-locksmith",
+        "photo_seed": "ustomarket-locksmith",
     },
     "Мастер по натяжным потолкам": {
         "services": [
@@ -153,7 +153,7 @@ PROFESSIONS: dict[str, dict] = {
             {"name": "Обход труб", "price": 15, "unit": "шт"},
         ],
         "desc": "Натяжные потолки любой сложности, замер бесплатно.",
-        "photo_seed": "ustobozor-ceiling",
+        "photo_seed": "ustomarket-ceiling",
     },
 }
 
@@ -163,7 +163,7 @@ EXTRA_DESCRIPTIONS = [
     "Бригада мастеров. Выполняем любые объёмы.",
     "Мастер на час. Выезд в любой район города.",
     "Профессиональный подход. Гарантия на все виды работ.",
-    "Помогу с закупкой материалов со скидкой в Ustobozor.",
+    "Помогу с закупкой материалов со скидкой в Ustomarket.",
     "Работаю по договорённости, без предоплаты.",
 ]
 

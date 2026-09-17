@@ -170,7 +170,7 @@ class _MastersScreenState extends State<MastersScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Ustobozor
+              // Ustomarket
               Padding(
                 padding: const EdgeInsets.fromLTRB(15, 12, 15, 8),
                 child: Text(

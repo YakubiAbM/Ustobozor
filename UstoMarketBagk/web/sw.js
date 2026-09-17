@@ -1,4 +1,4 @@
-const CACHE = 'ustobozor-web-v48';
+const CACHE = 'ustomarket-web-v48';
 const SHELL = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', (e) => {

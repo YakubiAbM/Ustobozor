@@ -134,7 +134,7 @@ class Translations {
       'master_password_min': 'Пароль должен быть не короче 4 символов',
       'master_password_mismatch': 'Пароли не совпадают',
       'master_reset_password_info':
-          'Администратор Ustobozor одобрил сброс пароля. Пожалуйста, придумайте и введите новый пароль (пин-код) для входа.',
+          'Администратор Ustomarket одобрил сброс пароля. Пожалуйста, придумайте и введите новый пароль (пин-код) для входа.',
       'master_new_password': 'Введите новый пароль',
       'master_confirm_password': 'Повторите новый пароль',
       'master_save_and_login': 'Сохранить и войти',
@@ -395,7 +395,7 @@ class Translations {
       'sr_status_done': 'Завершена',
       'sr_status_cancelled': 'Отменена',
       'sr_wa_hello':
-          'Здравствуйте, я по поводу вашего заказа в Ustobozor:',
+          'Здравствуйте, я по поводу вашего заказа в Ustomarket:',
       'sr_become_master': 'Стать мастером',
       'sr_mode_master': 'Режим мастера',
       'sr_mode_client': 'Режим заказчика',
@@ -534,7 +534,7 @@ class Translations {
       'master_password_min': 'Парол бояд на кам аз 4 рақам бошад',
       'master_password_mismatch': 'Паролҳо мутобиқ нестанд',
       'master_reset_password_info':
-          'Маъмури Ustobozor барқарор кардани паролро тасдиқ кард. Лутфан пароли нави вурудро таъин кунед.',
+          'Маъмури Ustomarket барқарор кардани паролро тасдиқ кард. Лутфан пароли нави вурудро таъин кунед.',
       'master_new_password': 'Пароли наверо ворид кунед',
       'master_confirm_password': 'Паролро такрор кунед',
       'master_save_and_login': 'Нигоҳ доштан ва вуруд',
@@ -833,7 +833,7 @@ class Translations {
       'sr_status_done': 'Анҷом ёфт',
       'sr_status_cancelled': 'Бекор шуд',
       'sr_wa_hello':
-          'Салом, ман дар бораи фармоиши шумо дар Ustobozor:',
+          'Салом, ман дар бораи фармоиши шумо дар Ustomarket:',
       'sr_become_master': 'Усто шудан',
       'sr_mode_master': 'Режими усто',
       'sr_mode_client': 'Режими фармоишгар',

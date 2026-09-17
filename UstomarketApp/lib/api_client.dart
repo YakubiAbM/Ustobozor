@@ -9,7 +9,7 @@ import 'services/api_ready.dart';
 
 const _timeout = Duration(seconds: 60);
 const _retries = 2;
-const _userAgent = 'UstobozorApp/1.0 (Android)';
+const _userAgent = 'UstomarketApp/1.0 (Android)';
 
 void _logApiError(String label, Object e) {
   if (kDebugMode) {

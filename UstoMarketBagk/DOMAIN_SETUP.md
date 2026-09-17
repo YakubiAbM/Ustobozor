@@ -1,4 +1,4 @@
-# Домен ustobozor.tj — пошаговая настройка
+# Домен ustobozor.tj (бренд Ustomarket) — пошаговая настройка
 
 После настройки:
 
@@ -76,11 +76,11 @@ chmod 600 /etc/ssl/ustobozor.tj/privkey.pem
 
 ```bash
 cd /root/backendGreen
-chmod +x scripts/setup_ustobozor_domain.sh
-bash scripts/setup_ustobozor_domain.sh
+chmod +x scripts/setup_ustomarket_domain.sh
+bash scripts/setup_ustomarket_domain.sh
 ```
 
-Скрипт установит nginx, подключит конфиг, обновит `.env` и перезапустит `ustobozor`.
+Скрипт установит nginx, подключит конфиг, обновит `.env` и перезапустит `ustomarket`.
 
 Откройте порты в фаерволе Timeweb:
 
@@ -129,14 +129,14 @@ flutter build apk
 |----------|---------|
 | DNS не резолвится | Подождите / проверьте A-запись |
 | ERR_SSL | Проверьте пути к `.pem` в nginx |
-| 502 Bad Gateway | `systemctl status ustobozor` — uvicorn на :8000 |
+| 502 Bad Gateway | `systemctl status ustomarket` — uvicorn на :8000 |
 | Старый /web/ | Редирект на `/` уже в коде |
 | CORS в браузере | В `.env`: `ALLOWED_ORIGINS=https://ustobozor.tj` |
 
 Логи:
 
 ```bash
-journalctl -u ustobozor -f
+journalctl -u ustomarket -f
 tail -f /var/log/nginx/error.log
 ```
 

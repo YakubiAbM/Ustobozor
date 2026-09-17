@@ -27,12 +27,12 @@ apt-get install -y nginx certbot python3-certbot-nginx
 
 mkdir -p /var/www/certbot/.well-known/acme-challenge
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-NGINX_SRC="$SCRIPT_DIR/nginx-api-ustobozor.conf"
+NGINX_SRC="$SCRIPT_DIR/nginx-api-ustomarket.conf"
 if [ ! -f "$NGINX_SRC" ]; then
-  NGINX_SRC="/root/nginx-api-ustobozor.conf"
+  NGINX_SRC="/root/nginx-api-ustomarket.conf"
 fi
-cp "$NGINX_SRC" /etc/nginx/sites-available/ustobozor
-ln -sf /etc/nginx/sites-available/ustobozor /etc/nginx/sites-enabled/ustobozor
+cp "$NGINX_SRC" /etc/nginx/sites-available/ustomarket
+ln -sf /etc/nginx/sites-available/ustomarket /etc/nginx/sites-enabled/ustomarket
 rm -f /etc/nginx/sites-enabled/default
 
 nginx -t

@@ -1,4 +1,4 @@
-# Ustobozor — HTTPS API (prod)
+# Ustomarket — HTTPS API (prod)
 
 ## Base URL (Flutter)
 
@@ -38,7 +38,7 @@ Timeweb Firewall: открыть **TCP 80** и **TCP 443**.
 
 ```bash
 # Загрузить с ПК:
-scp deploy/nginx-api-ustobozor.conf deploy/setup_https_api.sh root@185.185.142.229:/root/
+scp deploy/nginx-api-ustomarket.conf deploy/setup_https_api.sh root@185.185.142.229:/root/
 
 # На сервере:
 chmod +x /root/setup_https_api.sh
@@ -77,9 +77,9 @@ flutter run
 ## Сервер (systemd)
 
 ```bash
-systemctl status ustobozor nginx
-systemctl restart ustobozor
-journalctl -u ustobozor -f
+systemctl status ustomarket nginx
+systemctl restart ustomarket
+journalctl -u ustomarket -f
 ```
 
 Проект: `/root/backendGreen`

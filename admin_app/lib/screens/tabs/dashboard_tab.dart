@@ -97,7 +97,7 @@ class _DashboardBody extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Ustobozor Admin',
+            'Ustomarket Admin',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,

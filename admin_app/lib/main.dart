@@ -69,7 +69,7 @@ class _AdminAppState extends State<AdminApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Ustobozor Admin',
+      title: 'Ustomarket Admin',
       debugShowCheckedModeBanner: false,
       theme: AdminTheme.light,
       darkTheme: AdminTheme.dark,

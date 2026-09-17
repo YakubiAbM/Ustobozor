@@ -1,11 +1,11 @@
 {
-    "name": "Ustobozor",
-    "short_name": "Ustobozor",
+    "name": "Ustomarket",
+    "short_name": "Ustomarket",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "Ustobozor — интернет-магазин строительных материалов.",
+    "description": "Ustomarket — интернет-магазин строительных материалов.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

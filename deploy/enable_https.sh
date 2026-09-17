@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run on VPS after DNS A records point to this server:
-#   sudo bash /home/ubuntu/Ustobozor/deploy/enable_https.sh
+#   sudo bash /home/ubuntu/Ustomarket/deploy/enable_https.sh
 set -euo pipefail
 
 DOMAIN=ustobozor.tj

@@ -5,7 +5,7 @@ Usage (from UstoMarketBagk/):
   python3 scripts/generate_prod_env.py
 
 Then copy to the VPS as .env:
-  scp .env.production ubuntu@92.119.185.123:~/Ustobozor/UstoMarketBagk/.env
+  scp .env.production ubuntu@92.119.185.123:~/Ustomarket/UstoMarketBagk/.env
 """
 
 from __future__ import annotations

@@ -58,7 +58,7 @@ class _CartScreenState extends State<CartScreen> {
                   ),
                   Expanded(
                     child: Text(
-                      'Ustobozor',
+                      'Ustomarket',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w900,

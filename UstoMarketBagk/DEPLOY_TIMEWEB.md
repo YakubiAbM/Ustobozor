@@ -1,4 +1,4 @@
-## Деплой Ustobozor на Timeweb (VPS / Cloud Server)
+## Деплой Ustomarket на Timeweb (VPS / Cloud Server)
 
 Ниже — минимальная инструкция, рассчитанная на **VPS/Cloud-сервер с Docker** на Timeweb.
 Если на аккаунте есть только "Docker-контейнер" без docker-compose, используйте просто `Dockerfile` из проекта — образ будет собран по тем же шагам.
@@ -39,7 +39,7 @@ docker compose up -d       # поднять app + db в фоне
 
 После этого API и PWA будут доступны по:
 
-- `http://<SERVER_IP>:8000/web/` — PWA Ustobozor;
+- `http://<SERVER_IP>:8000/web/` — PWA Ustomarket;
 - корневые эндпоинты API (`/products`, `/masters`, `/orders`, `/auth/...`) — на том же хосте/порту.
 
 > Если нужен HTTPS и домен — поверх этого можно поставить Nginx + Let’s Encrypt, который будет проксировать 80/443 на `app:8000`.

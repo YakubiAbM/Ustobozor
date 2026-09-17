@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Восстановление Ustobozor: backend :8000 + nginx → proxy
+# Восстановление Ustomarket: backend :8000 + nginx → proxy
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/root/backendGreen}"
 DOMAIN="ustobozor.tj"
-NGINX_SITE="/etc/nginx/sites-available/ustobozor"
+NGINX_SITE="/etc/nginx/sites-available/ustomarket"
 
 log() { echo "==> $*"; }
 
@@ -13,8 +13,8 @@ echo "--- listeners ---"
 ss -tlnp | grep -E ':80|:443|:8000|:22' || true
 echo "--- docker ---"
 docker ps -a 2>/dev/null || echo "docker недоступен"
-echo "--- ustobozor service ---"
-systemctl is-active ustobozor 2>/dev/null || echo "ustobozor service: inactive/missing"
+echo "--- ustomarket service ---"
+systemctl is-active ustomarket 2>/dev/null || echo "ustomarket service: inactive/missing"
 echo "--- local API ---"
 curl -sS --max-time 5 -o /dev/null -w "127.0.0.1:8000 -> %{http_code}\n" "http://127.0.0.1:8000/products?limit=1" || echo "127.0.0.1:8000 -> FAIL"
 
@@ -33,12 +33,12 @@ if [[ -d "$APP_DIR" ]]; then
     sleep 25
     docker compose ps || true
     docker compose logs app --tail 20 2>/dev/null || true
-  elif systemctl list-unit-files | grep -q ustobozor.service; then
-    systemctl restart ustobozor
+  elif systemctl list-unit-files | grep -q ustomarket.service; then
+    systemctl restart ustomarket
     sleep 3
-    systemctl status ustobozor --no-pager | head -15 || true
+    systemctl status ustomarket --no-pager | head -15 || true
   else
-    echo "WARN: ни docker compose, ни ustobozor.service не найдены в $APP_DIR"
+    echo "WARN: ни docker compose, ни ustomarket.service не найдены в $APP_DIR"
   fi
 else
   echo "ERROR: $APP_DIR не существует"
@@ -55,7 +55,7 @@ for i in 1 2 3 4 5; do
   sleep 5
 done
 curl -sS --max-time 8 "http://127.0.0.1:8000/products?limit=1" | head -c 120 || {
-  echo "ERROR: backend на :8000 не отвечает — смотрите docker compose logs / journalctl -u ustobozor"
+  echo "ERROR: backend на :8000 не отвечает — смотрите docker compose logs / journalctl -u ustomarket"
   exit 1
 }
 echo ""
@@ -66,7 +66,7 @@ SSL_KEY=""
 for pair in \
   "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem /etc/letsencrypt/live/${DOMAIN}/privkey.pem" \
   "/etc/ssl/${DOMAIN}/fullchain.pem /etc/ssl/${DOMAIN}/privkey.pem" \
-  "/etc/ssl/certs/ustobozor-selfsigned.crt /etc/ssl/private/ustobozor-selfsigned.key"; do
+  "/etc/ssl/certs/ustomarket-selfsigned.crt /etc/ssl/private/ustomarket-selfsigned.key"; do
   read -r c k <<< "$pair"
   if [[ -f "$c" && -f "$k" ]]; then
     SSL_CERT="$c"
@@ -79,18 +79,18 @@ if [[ -z "$SSL_CERT" ]]; then
   log "Сертификат не найден — создаём self-signed"
   mkdir -p /etc/ssl/private
   openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout /etc/ssl/private/ustobozor-selfsigned.key \
-    -out /etc/ssl/certs/ustobozor-selfsigned.crt \
+    -keyout /etc/ssl/private/ustomarket-selfsigned.key \
+    -out /etc/ssl/certs/ustomarket-selfsigned.crt \
     -subj "/CN=${DOMAIN}"
-  SSL_CERT="/etc/ssl/certs/ustobozor-selfsigned.crt"
-  SSL_KEY="/etc/ssl/private/ustobozor-selfsigned.key"
+  SSL_CERT="/etc/ssl/certs/ustomarket-selfsigned.crt"
+  SSL_KEY="/etc/ssl/private/ustomarket-selfsigned.key"
 fi
 echo "SSL: $SSL_CERT"
 
 log "6. Nginx — proxy на :8000"
 mkdir -p /var/www/certbot/.well-known/acme-challenge
 cat > "$NGINX_SITE" << NGINX
-upstream ustobozor_app {
+upstream ustomarket_app {
     server 127.0.0.1:8000;
     keepalive 16;
 }
@@ -108,7 +108,7 @@ server {
     }
 
     location / {
-        proxy_pass http://ustobozor_app;
+        proxy_pass http://ustomarket_app;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
@@ -131,7 +131,7 @@ server {
     client_max_body_size 50M;
 
     location / {
-        proxy_pass http://ustobozor_app;
+        proxy_pass http://ustomarket_app;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
@@ -143,7 +143,7 @@ server {
 }
 NGINX
 
-ln -sf "$NGINX_SITE" /etc/nginx/sites-enabled/ustobozor
+ln -sf "$NGINX_SITE" /etc/nginx/sites-enabled/ustomarket
 rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
 
 nginx -t

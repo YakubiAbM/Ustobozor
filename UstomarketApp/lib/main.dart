@@ -93,7 +93,7 @@ class MyApp extends StatelessWidget {
               return MaterialApp(
                 navigatorKey: navigatorKey,
                 scaffoldMessengerKey: scaffoldMessengerKey,
-                title: 'Ustobozor',
+                title: 'Ustomarket',
                 debugShowCheckedModeBanner: false,
                 themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
                 locale: Locale(settingsState.materialLocaleCode),

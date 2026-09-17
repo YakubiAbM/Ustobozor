@@ -1,9 +1,9 @@
 # Apply nginx cache config for ustobozor.tj
 $ErrorActionPreference = "Stop"
 $Server = "root@185.185.142.229"
-$RemoteConfig = "/etc/nginx/sites-available/ustobozor"
-$LocalConfig = Join-Path $PSScriptRoot "nginx-ustobozor-production.conf"
-$Backup = "/etc/nginx/sites-available/ustobozor.bak.$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+$RemoteConfig = "/etc/nginx/sites-available/ustomarket"
+$LocalConfig = Join-Path $PSScriptRoot "nginx-ustomarket-production.conf"
+$Backup = "/etc/nginx/sites-available/ustomarket.bak.$(Get-Date -Format 'yyyyMMdd-HHmmss')"
 
 Write-Host "==> Backup current nginx config to $Backup"
 ssh -o ConnectTimeout=30 -o BatchMode=yes $Server "cp $RemoteConfig $Backup && echo Backup OK: $Backup"
