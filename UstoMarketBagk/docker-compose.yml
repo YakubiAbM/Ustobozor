@@ -9,7 +9,8 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - OTP_BACKEND=redis
     ports:
-      - "8000:8000"
+      # Только localhost — снаружи доступ через nginx :80/:443
+      - "127.0.0.1:8000:8000"
     restart: always
     depends_on:
       db:
